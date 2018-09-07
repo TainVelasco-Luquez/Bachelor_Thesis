@@ -1,0 +1,736 @@
+---
+title: "RBDmodule"
+author: "Tain Velasco-Luquez"
+date: "15/05/2017"
+output: 
+  html_document:
+    toc: True
+    toc_float: TRUE
+bibliography: /Users/imacoftain/Dropbox/newmin.bib
+---
+# Copyright statement 
+![](/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Images/cc-by-sa.png)
+
+This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+```{r include=FALSE, eval=FALSE}
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons Licence" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
+```
+
+
+# Author information
+**Tain Velasco-Luquez** (tvelasco@javeriana.edu.co). Bioinformatics and Systems Biology Group (GIBBS), Instituto de genética, Universidad Nacional de Colombia
+Bogotá D.C., Colombia.
+
+# Script description
+The main objective of this script is to construct, validate and visualise in HI the RBD disease module predicted using the DIAMOnD algorith [@Ghiassian:2015hu]. For further details refer to the main document of the thesis. Style guide is followed according to the [ R style guide](https://google.github.io/styleguide/Rguide.xml#filenames) 
+
+## Function definitions
+### 0. Validating the RBD module against the random expectation of its transitivity. 
+
+```{r InteractomeSamplingTransitivity, message=FALSE, warning=FALSE}
+# x is an igraph object representing the network to validate.
+# n.sims is an integer with the number  of simulations to performed.
+# n.cor is the integer representing the number of cores to use: n.cor <- detectCores() - 1
+SamplingTransitivity <- function(x, n.sim, n.cor){
+  
+  set.seed(0)  # To ensure reproducible results from random samples
+  
+  # Extracting the number of vertices from the network
+  verte.x <- igraph::vcount(x)
+  
+  # The null model is the Erdos-Renyi random graph
+  trans.simulated <- mclapply(1:n.sim,
+                              function(i){
+                                round(igraph::transitivity(igraph::rewire(igraph::sample_gnp(n = verte.x,
+                                                               p = 0.5,
+                                                               directed = FALSE,
+                                                               loops = FALSE),
+                                                    with = keeping_degseq(niter = 100 ))),
+                                      digits = 2)
+                                },
+                              mc.cores = n.cor)  # Alternatively one can set niter to vcount(x) * 10 or verte.x * 10 as adviced by the author. Espinoza http://biogrid.engr.uconn.edu/REU/Reports_12/Final_Reports/Max.pdf recommend 100*e.count as the minimum
+  
+  # Coercing the list class to numeric class, and this in turn into a data frame for ggplot2 compatibility
+  trans.simulated <- as.data.frame(as.numeric(unlist(trans.simulated)))
+  
+  #Setting the column name
+  names(trans.simulated) <- c("Transitivity", "Source")
+  
+  # Filling Source as a factor instead of Character class 
+  trans.simulated$Source <- "Simulated"
+  trans.simulated$Source <- as.factor(trans.simulated$Source)
+  
+  # Adding the observed transitivity to trans.simulated
+  trans.x <- as.numeric(unlist(igraph::transitivity(x)))  # Observed global clustering coefficient 
+  trans.simulated <- rbind(trans.simulated, list(trans.x, "Observed"))
+  
+  # Calculating the Z-score = ((X - μ.random) / σ.random), to see how many σ a given data set is from its μ, between the observed transitivity and the average transitivity from random samples. Where mean(trans.simulated) is the simulated average global clustering coefficient and sd(trans.simulated) its standard deviation
+  z.score <- round((trans.x - mean(trans.simulated))/sd(trans.simulated), 3)
+  
+  # Result message
+  cat("\nThe observed Clustering Coefficient (C) is:", trans.x, "\nThe simulated average Clustering Coefficient (C_s) is:", mean(trans.simulated), "\nThe Z-score is:", z.score)
+  
+  
+  # Creating the plot
+  transitivity.plot <- ggplot(data = trans.simulated,
+         aes(x = Transitivity,
+             fill = Source)) +
+    geom_histogram(alpha = .5) +
+    geom_vline(aes(xintercept = mean(Transitivity[Source != "Observed"],
+                                     na.rm = TRUE)),
+               linetype = "dashed",
+               size = 1,
+               color = "red") +
+    geom_vline(aes(xintercept = median(Transitivity[Source != "Observed"],
+                                       na.rm = TRUE)),
+               linetype = "dashed",
+               size = 1,
+               color = "green") +
+    ylab("P(<C>)") +
+    xlab("Transitivity (<C>)")
+  
+return(transitivity.plot, trans.simulated)  
+}
+```
+
+The simulation creates n.sim of random graphs (with sample_gnp()) with edge rewiring while preserving the degree distribution (with rewiring(keeping_degseq(niter = 1000))), also called Degree Preserving Randomization, and then calculates its transitivity for each n.sim graph. Comparing against a randomly created networks one can stablish the goodness of fit [@Kolaczyk:2014cu, p. 94]
+### 1. Single legend for multiplot
+When unifying several plots into one, it is useful to have a single legend for all of them, and thus avoiding redundancy and saving space for the important information. This function was taken from (stackoverflow)[http://stackoverflow.com/questions/12539348/ggplot-separate-legend-and-plot] and all credit is for it.
+
+```{r single_legend, message=FALSE, warning=FALSE}
+library(gridExtra)
+gLegend <- function(a.gplot){
+    tmp <- ggplot_gtable(ggplot_build(a.gplot))
+    leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+    legend <- tmp$grobs[[leg]]
+    legend
+}
+```
+
+## Packages
+```{r library, message=FALSE, warning=FALSE}
+# Praefinitum network manipulation package
+library("igraph")
+library("network")
+
+# For network exchange
+library("intergraph")
+
+# To employ the ggplot2 power with igraph and network object classes
+library("ggnet")
+library("plotly")
+library("grid")
+library("ggplot2")
+
+# To arrange multiple plots
+library("gridExtra")
+
+# To paralellise the code
+library("parallel")
+library("foreach")
+
+# To enhance the file importing process
+library("readr")
+
+# To general data frame manipulation
+library("dplyr")
+library("tibble")
+
+# Network Enrichment Analysis
+library("neat")
+library("org.Hs.eg.db")
+```
+***
+
+# RBD seed nodes
+After gather the RBD seed nodes extracted from literature and public DBs, it is time to visualise them as the protomodule in the interactome (*id est* RBD genes with the interactome' interactions)
+
+```{r message=FALSE, error=FALSE, warning=FALSE}
+# Importing the HI 2 network
+load("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/HI_2_networks.RData")
+
+# Importing the file
+RBDlist <- as.character(unlist(read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/Files_ready/RBD_list.txt", "\t", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE)))
+
+# Excluding the nodes "6531" and "5673", otherwise there will be an error
+RBDlist <- RBDlist[RBDlist != "6531" & RBDlist != "5673"]
+
+# Extracting the interactions AMONG RBD nodes
+protoModule <- igraph::induced_subgraph(graph = interactomeGraph, vids = RBDlist, impl = "auto")
+
+# Converting from igraph to netork class, for visualisation with ggnet2
+protoModuleNet <- intergraph::asNetwork(protoModule)
+
+# Plotting disconnected nodes
+protoModulePlot <- ggnet2(protoModuleNet,
+       mode = "circle",
+       color = "#00BFC4",
+       alpha = 0.5,
+       edge.alpha = 0.9,
+       edge.size = 0.1,
+       label = TRUE,
+       label.size = 5,
+       label.alpha = 1) +
+  geom_point(aes(color = color), size = 5, alpha = 0.6) +
+  ggtitle("A")
+```
+There are no edges among the RBD nodes, *i.e.* the genes and proteins presumed to be involved in RBD have no direct links among them, reflecting the deeply ignorance regarding the molecular basis for RBD.
+
+Plottig the seed genes plus the interactions with their first neigbourhoods, in order to see if including the latter there is a visible module (pretty much like a 1st order proto-module):
+
+```{r message=FALSE, error=FALSE, warning=FALSE}
+# Extracting the neighbour of seed nodes
+neighverts <- unique(unlist(igraph::ego(graph = interactomeGraph, order = 1, nodes = RBDlist)))
+
+# Subsetting the interactome by seed nodes + neighbours
+neighvertsModule <- induced.subgraph(graph = interactomeGraph, vids = neighverts)
+
+# Getting the data frame to extract the "source" attribute
+#neighvertsModuleDF <- igraph::as_data_frame(neighvertsModule)
+
+# Setting the type of node to either seed or neighbour
+#neighvertsModuleDF$Type <- ifelse(neighvertsModuleDF$from %in% RBDlist | neighvertsModuleDF$to %in% RBDlist, "Seed", "Neighbour")
+
+# Simplifying the 1st order protomodule
+neighvertsModule <- igraph::simplify(neighvertsModule, remove.multiple = TRUE, remove.loops = TRUE)
+  
+# Converting from igraph to netork class, for visualisation with ggnet2
+neighvertsModule <- intergraph::asNetwork(neighvertsModule)
+
+# Adding the Degree, Source and color attributes
+neighvertsModule %v% "Degree" <- sna::degree(neighvertsModule)
+neighvertsModule %v% "Type" <- ifelse(get.vertex.attribute(neighvertsModule, "vertex.names") %in% RBDlist, "Seed", "Neighbour")
+
+# Plotting disconnected nodes
+neighvertsModulePlot <- ggnet2(neighvertsModule,
+       mode = "fruchtermanreingold",
+       node.size = "Degree",
+       size.cut = 3,
+       node.color = "Type",
+       alpha = 0.5,
+       edge.alpha = 0.9,
+       edge.size = 0.1,
+       edge.color = "grey",
+       palette = c("Seed" = "#00BFC4", "Neighbour" = "#C77CFF"),
+       legend.position = "none",
+       label = RBDlist,
+       label.size = 3) +
+  geom_point(aes(color = color), color = "white", alpha = 0.2, show.legend = FALSE) +
+  geom_point(aes(color = color), alpha = 0.5) +
+  ggtitle("B")
+
+# Optional to pass to node.color
+# ifelse(get.vertex.attribute(neighvertsModule, "vertex.names") %in% RBDlist, "#619CFF", "#00BA38")
+```
+
+For plotting the complete interactions among all nodes to which RBD nodes interact with:
+
+```{r message=FALSE, error=FALSE, eval=FALSE, include=FALSE}
+# Extracting the interactome interaction in which any RBD node is involved in
+protoModule <- dplyr::bind_rows(dplyr::right_join(interactome_ready, RBDlist, by = c("EG_node2" = "EG_RBD")), dplyr::right_join(interactome_ready, RBDlist, by = c("EG_node1" = "EG_RBD")))
+
+# Getting rid of NA/NaN
+sum(is.na(protoModule))
+protoModule <- unique(protoModule[complete.cases(protoModule), ])
+
+# Creating the network object for visualisation
+protoModuleNet <- network::network(protoModule, directed = FALSE)
+
+# Adding the degree and source attributes
+protoModuleNet %v% "Degree" <- sna::degree(protoModuleNet)
+protoModuleNet %v% "Source" <- protoModule$Source
+
+# PLotting
+ggnet2(protoModuleNet,
+       mode = "fruchtermanreingold",
+       node.size = "Degree",
+       size.cut = 5,
+       alpha = 0.8,
+       edge.alpha = 0.9,
+       edge.size = 0.1,
+       edge.color = "grey",
+       node.color = "Source",
+       palette = c(regulatory = "gray50", metabosignal = "tomato", ppi = "gold")) +
+  geom_point(aes(color = color), color = "white") +
+  geom_point(aes(color = color), alpha = 0.5)
+
+```
+
+## Validation of the protomodule
+Validation of the protomodule and 1st order ptoto module is going to be performed using GO biological process, molecular function and cellular compartemnets ontologies, based only on high confidence experimental codes (EXP,  IDA,  IMP,  IGI or  IEP) and  excluded  annotations  inferred  from  physical  interactions  (evidence  code  IPI)  to  avoid  circularity [@Ghiassian:2015hu] and from *in silico* evidence, curator statements and author statement from publication [eGO evidence codes](http://geneontology.org/page/evidence-code-decision-tree). Enrichment of the mentioned modules with GO terms is going to be performed employing neat package.
+
+### 0. GO biological process
+Once assessed the enrichment between the RBD seed nodes and the protomodule 1st order against the GO biological process the 10 most significant (smaller p-vaue) GOID (*i.e* biological process) will be selected to be compared when adding each node on DIAMONd. The pvalue of each of these 10 GOID will be ploted against iteration step to selct the maximum added nodes by DIAMOND.
+
+```{r message=FALSE, error=FALSE, warning=FALSE}
+# Retrieving the names of all nodes in the intreactome as a character list
+EGall <- sort(V(interactomeGraph)$name)
+
+# Transforming RBD seed nodes into a list
+setA <- vector('list', 1)
+setA[[1]] <- RBDlist
+names(setA) <- 'setA'
+
+# Calling the DB class as data frame, for it handyness
+data("org.Hs.egGO")
+org.Hs.egGODB <- AnnotationDbi::as.data.frame(org.Hs.egGO)
+# N.B. this Annotation.DB object contain GOIDs maps per EGIDs, i.e. it answer the question: how many GOID do each EGID have?
+
+# Counting the number of EG IDs per evidence code
+org.Hs.egGODB %>% group_by(Evidence) %>% summarize(count = n()) %>% arrange(count)  
+# Top three evidence codes with less mapping are the ones selected as high confidence. So, if the number of mapping in subsequent steps is to small one can include other less restrictive evidence  codes
+
+# Counting the number of EG IDs per ontology class
+org.Hs.egGODB %>% group_by(Ontology) %>% summarize(count = n()) %>% arrange(count) 
+
+# Filtering org.Hs.egGO DB data frame by ontology and evidence codes. Only including those GOIDs whose EGIDs are included in the interactome
+EG2GOBP <- dplyr::filter(org.Hs.egGODB, Ontology == "BP", Evidence == "EXP" | Evidence == "IDA" | Evidence == "IMP" | Evidence == "IGI" | Evidence == "IEP" | Evidence == "ISS" | Evidence == "ISA" | Evidence == "ISO") %>% dplyr::arrange(go_id) %>% dplyr::select(go_id, gene_id) %>% unique() %>% dplyr::filter(gene_id %in% EGall)
+
+# Converting each GOID into a list whose elements are the EGIDs. EG2GOBP is converted into a list of list
+EG2GOBP <- EG2GOBP %>%
+  dplyr::group_by(go_id) %>%
+  dplyr::select(gene_id) %>%
+  split(f = EG2GOBP$go_id) %>%
+  lapply(FUN = function(i){ 
+    as.data.frame(i) %>% 
+    dplyr::select(gene_id) %>%
+    unlist() %>%
+    as.character()})
+
+# GO biological enrichment of RBD nodes with NEAT.  In UNDIRECTED networks, A and B can be inverted – you can do this, because you just swap the degrees of A and B in the hypergeometric (so, you invert n and K), and an hypergeometric with parameters n, K, N is the same as an hypergeometric K,n,N. That is why the RBD list of seed genes is in blist and the ist of GOBP in alist
+RBDrich <- neat(alist = EG2GOBP, blist = setA, network = interactomeGraph, nettype = "undirected", nodes = EGall, alpha = 0.01)
+
+# Adjusting the p-values for multiple test type I error
+RBDrich$padj <- p.adjust(RBDrich$p, method = 'BH')
+
+#Top 10 most significantly enriched GOIDs are going to be used as criterion to choose the number of DIAMOnD nodes to include in the RBD module
+RBDrich10 <- RBDrich %>% dplyr::arrange(padj) %>% dplyr::slice(1:10)
+```
+
+
+```{r include=FALSE, eval=FALSE}
+# Using nea
+# AGS
+RBDlist <- as.character(unlist(read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/Files_ready/RBDlist.txt", "\t", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE)))
+RBDlist <- RBDlist[RBDlist != "6531" & RBDlist != "5673"]
+RBDlist <- as.data.frame(RBDlist)
+RBDags <- import.gs(RBDlist, col.gene = 1, col.set = 0)
+
+# FGS
+EG2GOBP <- import.gs(EG2GOBP, col.gene = 2, col.set = 1)
+
+# NET
+interactome_ready_2 <- as.data.frame(dplyr::select(interactome_ready_2, 1:2))
+NET <- import.net(interactome_ready_2, col.1 = 1, col.2 = 2)
+```
+
+### 1.0 DIAMOnD
+Predicting the nodes belonging to the putative RBD-module
+
+```{bash}
+# Changing the directory
+cd /Volumes/Taveluz_1T/Universidad/11\  Semestre/Thesis/Thesis_R/Data/Files_ready
+
+# Running DIAMOnD. 100 is the desired number of DIAMOnD genes as described in https://github.com/dinaghiassian/DIAMOnD
+chmod +x DIAMOnD.py
+./DIAMOnD.py interactome_ready_2.txt RBD_list.txt 500 prediction_interactome_2_500.txt
+```
+
+### 1.1 Stop criterion for DIAMOnD
+Inasmuch as DIAMOnD ranks all nodes in the HI, it is require a criterion, preferentially biological but a topological one or their combination can also be used, to decide when to stop the algorithm and select the number of nodes to be included in the RBD-module [@Ghiassian:2015hu]. The biological criterion is the GO enrichment for the ten most significantly enriched Biological process terms in the RBD-seed nodes.
+
+```{r warning=FAlSE, error=FALSE, message=FALSE}
+# Importing the DIAMOnD prediction
+prediction_interactome_2_500 <- read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/Files_ready/prediction_interactome_2_500.txt",
+                                       "\t",
+                                       escape_double = FALSE,
+                                       trim_ws = TRUE)
+names(prediction_interactome_2_500) <- c("Rank", "Node")
+
+# Extracting only the node id column
+setB <- vector('list', 1)
+setB[[1]] <- unlist(prediction_interactome_2_500[, 2], use.names = FALSE)
+names(setB) <- 'setB'
+
+# Validating the first 500 DIAMOnD nodes with GO biological process enrichment for the terms
+
+# Setup parallel backend to use n-1 processors
+cl <- makeCluster(detectCores() - 1)
+registerDoParallel(cl)  # Required for foreach
+strt <- Sys.time()  # For controlling the running time
+
+# Neat loop
+validationGOBP <- foreach(i = 1:length(setB$setB),
+                          .combine = 'rbind') %dopar% {
+                            # Adding a gene to the RBD in each iteration
+                            setA[[1]] <- c(setA[[1]], i)
+                            # network enrichment with GOBP
+                            neat::neat(alist = EG2GOBP[RBDrich10[, 1] ], blist = setA, network = interactomeGraph, nettype = "undirected", nodes = EGall, alpha = 0.05)
+}
+
+print(Sys.time() - strt)  # Total run time
+
+stopCluster(cl)  # Giving back the resources to the OS
+
+# Adding the iteration column
+validationGOBP$Iteration <- rep(1:500, each = 10)
+```
+
+```{r message=FALSE, fig.align="center", fig.cap=" The first 400 DIAMOnD nodes were added as this is the iteration in which the enrichment significance for GO biological process, drops below the alpha = 0.05 (dotted red line). The inset shows the first 100 nodes, expanding the colapsed lines in the bigger plot, due to their highly significant enrichment, as seen in the plotly graph."}
+# Ploting the 500 DIAMOnD iteration with inset of first 100 iterations
+# 500 iterations
+validationGOBPlot <- ggplot(data = validationGOBP,
+                            aes(x = Iteration, y = padj, colour = A)) +
+  geom_line() +
+  scale_y_continuous(trans = "reverse") +
+  labs(x = "Iteration", y = "Adjusted NEAT p-value") +
+  scale_colour_discrete(name = "GO Biological\nProcess term") +
+  geom_hline(aes(yintercept = 0.05),
+                 color = "tomato",
+               linetype = "dashed",
+               size = 1,
+               show.legend = FALSE) +
+  theme(panel.grid.minor = element_blank())
+
+# 100 iterations
+validationGOBPlot100 <- ggplot(data = validationGOBP100, aes(x = Iteration, y = padj, colour = A)) +
+  geom_line() +
+  scale_y_continuous(trans = "reverse") +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "none",
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(size = 10)) +
+  ggtitle("First 100 iterations")
+
+# Printing the static image
+print(validationGOBPlot)
+print(validationGOBPlot100, vp = viewport(width = 0.5,
+                                          height = 0.4,
+                                          x = 0.4,
+                                          y = 0.37))
+# Printing the plotly graph
+validationGOBPlotly <- ggplotly(validationGOBPlot)
+validationGOBPlotly
+```
+
+```{r message=FALSE}
+# Exporting the static image
+pdf(file = "Images/diamond_validation_GOBP.pdf", useDingbats = FALSE, height = 7, width = 8)
+print(validationGOBPlot)
+print(validationGOBPlot100, vp = viewport(width = 0.5,
+                                          height = 0.4,
+                                          x = 0.4,
+                                          y = 0.37))
+dev.off()
+
+# Creting the html file plotly plot
+htmlwidgets::saveWidget(validationGOBPlotly, file = "diamond_validation_GOBP.html")
+```
+
+The first 400 nodes were included as this is the iteration in which the significance of the enrichment decays below 0.05.
+
+## Validating the module
+Once selected the number of diamond nodes it is time to assembly the RBD module as the sum of the seed nodes and the predicted nodes asses some common topological features of the RBD module and to visualise it. 
+
+```{r message=FALSE}
+diamonodes <- prediction_interactome_2_500 %>% dplyr::slice(1:400)
+diamonodes$Type <- "DIAMOnD"
+
+RBDseed <- base::as.data.frame(RBDlist)
+names(RBDseed) <- "Node"
+RBDseed$Type <- "Seed"
+RBDseed$Rank <- 1
+
+RBDmodule <- dplyr::bind_rows(RBDseed, diamonodes)
+
+# Extracting the interactions in the HI belonging to the RBD module
+RBDmoduleGraph <- igraph::induced_subgraph(graph = interactomeGraph, vids = unlist(RBDmodule[, 1]), impl = "auto")
+
+# SImplifiying the network
+RBDmoduleGraph <- igraph::simplify(RBDmoduleGraph, remove.multiple = TRUE, remove.loops = TRUE)
+```
+
+### 0. Transitivity
+The observed RBD-module transitivity is compared against the random expectation from 1000 degree-preserving randomisations with random graphs of the form $G(n, p)$ where the probability to draw and edge between two randomly chosed nodes is $p = d/n$, where $n$ is the number of nodes in the network and $d$ is the critical point $d=1$. 
+>**It is required to fix the SamplingTransitivity function**
+
+```{r message=FALSE}
+# Observed RBD-module transitivity
+igraph::transitivity(RBDmoduleGraph)  # 0.2205182
+
+set.seed(0)  # To ensure reproducible results from random samples
+
+# The null model is the Erdos-Renyi random graph
+trans.simulated <- mclapply(1:1000,
+                              function(i){
+                                round(igraph::transitivity(igraph::rewire(igraph::sample_gnp(n = igraph::vcount(RBDmoduleGraph), p = 1/igraph::vcount(RBDmoduleGraph), directed = FALSE, loops = FALSE), with = keeping_degseq(niter = igraph::vcount(RBDmoduleGraph) * 10))), digits = 5)}, mc.cores = detectCores() - 1)  
+  
+# Coercing the list class to numeric class, and this in turn into a data frame for ggplot2 compatibility
+trans.simulated <- as.data.frame(as.numeric(unlist(trans.simulated)))
+names(trans.simulated) <- "Transitivity"
+
+# Calculating the Z-score = ((X - μ.random) / σ.random), to see how many σ a given data set is from its μ, between the observed transitivity and the average transitivity from random samples. Where mean(trans.simulated) is the simulated average global clustering coefficient and sd(trans.simulated) its standard deviation
+z.score.trans <- round((round(igraph::transitivity(RBDmoduleGraph), digits = 3) - mean(trans.simulated$Transitivity))/sd(trans.simulated$Transitivity), 3)
+  
+# Ploting 
+RBDtrans.plot <- ggplot(data = trans.simulated, aes(x = Transitivity)) +
+    geom_histogram(binwidth = 0.013, alpha = .5) +
+    geom_vline(aes(xintercept = mean(Transitivity, na.rm = TRUE)), linetype = "dashed", size = 0.7,color = "red") +
+    ylab("P(cl)") +
+    xlab("cl") +
+  ggtitle("C") +
+  geom_segment(aes(x = 0.22, y = 200, xend = 0.22, yend = 20),
+                  arrow = arrow(length = unit(0.3, "cm")), colour = "#00BFC4", alpha = 0.8, size = 0.8) +  
+  annotate("text", x = 0.21, y = 280,label = "Observed\ncl = 0.22",size = 4)
+
+```
+
+The observed clustering coefficient of the RBD is very far awasy in term of standard deviations (38.47 $\sigma$) from the mean of the random expectation. 
+
+### 1. APL
+The observed RBD-module average path length is compared against the random expectation from 1000 degree-preserving randomisations with random graphs of the form $G(n, p)$ where the probability to draw and edge between two randomly chosed nodes is $p = d/n$, where $n$ is the number of nodes in the network and $d$ is the critical point $d=1$. 
+
+```{r message=FALSE}
+# Observed RBD-module transitivity
+igraph::average.path.length(RBDmoduleGraph)  # 2.718564
+
+set.seed(0)  # To ensure reproducible results from random samples
+
+# Random expectation
+APL.simulated <- mclapply(1:1000,
+                              function(i){
+                                round(igraph::transitivity(igraph::rewire(igraph::sample_gnp(n = igraph::vcount(RBDmoduleGraph), p = 1/igraph::vcount(RBDmoduleGraph), directed = FALSE, loops = FALSE), with = keeping_degseq(niter = igraph::vcount(RBDmoduleGraph) * 10))), digits = 5)}, mc.cores = detectCores() - 1)
+
+# Coercing the list class to numeric class, and this in turn into a data frame for ggplot2 compatibility
+APL.simulated <- as.data.frame(as.numeric(unlist(APL.simulated)))
+names(APL.simulated) <- "APL"
+
+# Calculating the Z-score = ((X - μ.random) / σ.random), to see how many σ a given data set is from its μ, between the observed APL and the average APL from random samples. Where mean(APL.simulated) is the simulated average global clustering coefficient and sd(APL.simulated) its standard deviation
+z.score.APL <- round((round(igraph::transitivity(RBDmoduleGraph), digits = 3) - mean(APL.simulated$APL))/sd(APL.simulated$APL), 3)
+  
+# Ploting
+RBDAPL.plot <- ggplot(data = APL.simulated, aes(x = APL)) +
+    geom_histogram(binwidth = 0.5, alpha = .5) +
+    geom_vline(aes(xintercept = mean(APL, na.rm = TRUE)), linetype = "dashed", size = 0.7,color = "red") +
+    ylab("P(< d >)") +
+    xlab("< d >")  +
+  ggtitle("D") +
+  geom_segment(aes(x = 2.718564, y = 30, xend = 2.718564, yend = 2),
+                  arrow = arrow(length = unit(0.3, "cm")), colour = "#00BFC4", alpha = 0.8, size = 0.8) +
+  annotate("text", x = 2.72, y = 40,label = "Observed\n<d> = 2.72",size = 4)
+```
+
+Showing the composite plot
+```{r message=FALSE, fig.align="center", fig.cap=" A Transitivity and B average path length comparison between the observed and the random expectation from 1000 degree preserving randomisation with porbability of edge equal to 0.2 and 0.2, respectively. For A, the z-score = 38.47, indicating that the RBD clustering coefficient is significantly greater than onw would expect for a network with simmilar features. Conversely, for B, the average paths lenth observed in the RBD-module is significantly smaller than random networks of the same size, z-score = -2.50. Red dotted line is the mean."}
+
+pdf(file = "Images/trans_APL_RBDmodule.pdf", useDingbats = FALSE, height = 8, width = 8)
+grid.arrange(HItrans.plot, HIAPL.plot, RBDtrans.plot, RBDAPL.plot, ncol = 2, nrow = 2, widths = c(4, 4), heights = c(4, 4))
+dev.off()
+```
+
+The observed average paths length are significantly (z-score = ) smaller than the random expectation for network drawn with an edge probability of 
+
+### 2. ERGM
+For further validation of the RBD-module, instead of compare its properties against random network, a random model will be fited to RBD-module, expecting a poor resemblance between them (*i.e* the random model is not able to fully explain the observed features of the RBD-module, supporting the idea that a abiological process intead of a random one is giving place to such features.)
+
+```{r message=FALSE}
+# Network object from ergm analyses
+RBDmoduleNet <- intergraph::asNetwork(RBDmoduleGraph)
+
+set.seed(0) 
+
+# Fitting the Bernoulli random model
+RBDmoduleNet.model <- ergm(RBDmoduleNet ~ edges, control = control.ergm(parallel = 1, parallel.type = "PSOCK"))
+summary(RBDmoduleNet.model)
+
+# Probability to randomly draw and edge in the RBD-module
+plogis(coef(RBDmoduleNet.model)[['edges']])  # 0.06884785
+
+# Goodness-of-fit test for degree distribution
+RBDmoduleNet.model.gof.deg <- gof(RBDmoduleNet.model ~ degree,
+                                 control = control.gof.formula(nsim = 100, parallel = detectCores() - 1, parallel.type = "PSOCK"))
+
+# Goodness-of-fit test for geodesic distance distribution
+RBDmoduleNet.model.gof.dis <- gof(RBDmoduleNet.model ~ distance,
+                                 control = control.gof.formula(nsim = 100, parallel = detectCores() - 1, parallel.type = "PSOCK"))
+```
+
+```{r message=FALSE, fig.align="center", fig.cap=" Goodness-of-fit for the HI and the RBD-module. Goodness-of-fit test for the RBD-module by fitting an an \gls{ERGM} and comparing the degree distribution (A) and the geodesic distance (B). Additionally, B shows that all nodes in the RBD-module are reachable (NR = 0), also shown in the transitivity plot \ref{fig:trans_APL_RBDmodule}. Goodness-of-fit test for the HI comparing the degree distribution is shown in C. The bold black line is the observed value and the boxplots represent the simulated values showing the minimum and maximum values, as well as the 10\textsuperscript{th} and 90\textsuperscript{th} quantiles. In all cases, the overall poor fitting between the simulated and the observed value is quite remarkable, supporting the biological relevance of the RBD-module and the HI. For the sake of aesthetics, only the first 60 values of $d$ are shown."}
+
+pdf(file = "Images/ergm_RBDmodule.pdf", useDingbats = FALSE, height = 8, width = 10)
+layout(matrix(c(1,2,3,3), 2, 2, byrow = TRUE))
+plot(RBDmoduleNet.model.gof.deg, xlim = c(0,60), main = "")
+title(main = "A")
+plot(RBDmoduleNet.model.gof.dis, main = "")
+title(main = "B")
+plot(interactomeGraph.model.gof.deg, xlim = c(0, 60), main = "")
+title(main = "C")
+dev.off()
+```
+
+# Visualisation of the RBD-module
+It is time to visualise the RBD module
+
+```{r message=FALSE, error=FALSE, fig.align="center", fig.cap=""}
+# Adding the Degree, Source and color attributes
+RBDmoduleNet %v% "Degree" <- sna::degree(RBDmoduleNet)
+RBDmoduleNet %v% "Type" <- ifelse(get.vertex.attribute(RBDmoduleNet, "vertex.names") %in% RBDlist, "Seed", "DIAMOnD")
+RBDmoduleNet %e% "Type" <- ifelse(get.vertex.attribute(RBDmoduleNet, "vertex.names") %in% RBDlist, "#00BFC4", "#F8766D")
+
+# Plotting disconnected nodes
+RBDmoduleNetPlot <- ggnet2(RBDmoduleNet,
+       mode = "fruchtermanreingold",
+       size.cut = 3,
+       size.max = 90,
+       label = RBDlist,
+       node.size = "Degree",
+       node.color = "Type",
+       alpha = 0.5,
+       edge.alpha = 0.7,
+       edge.size = 0.3,
+       edge.color = "Type",
+       palette = c("Seed" = "#00BFC4", "DIAMOnD" = "#F8766D"),
+       legend.size = 10,
+       legend.position = "none",
+       label.size = 3) +
+  geom_point(aes(color = color), color = "white", alpha = 0.2, show.legend = FALSE) +
+  geom_point(aes(color = color), alpha = 0.5) +
+  ggtitle("C")
+
+#layout.par = list(max.delta = 10000, niter = 1000, cool.exp = 20, repulse.rad = 0.01)
+#
+# # Retrieving the adjacency for heatmap ploting
+# RBDmoduleAdj <- igraph::as_adjacency_matrix(RBDmoduleGraph,
+#                                    names = TRUE,
+#                                    sparse = FALSE)
+
+# Constructing the heatmap
+#palf <- colorRampPalette(c("gold", "dark orange"))
+#heatmap(RBDmoduleAdj,col = palf(100),scale="none",margins=c(10,10))
+      
+# Creating the unified legend
+# For the sake of the shared legend in the final document
+RBDmoduleNetLegend <- RBDmoduleNet
+RBDmoduleNetLegend %v% "Type" <- rep(c("Seed", "Neighbour", "DIAMOnD"), 3)
+
+# Plotting disconnected nodes
+RBDLegend <- ggnet2(RBDmoduleNetLegend,
+       mode = "fruchtermanreingold",
+       node.size = "Degree",
+       size.cut = 3,
+       size.max = 90,
+       node.color = "Type",
+       alpha = 0.5,
+       edge.alpha = 0.7,
+       edge.size = 0.3,
+       edge.color = "Type",
+       palette = c("Seed" = "#00BFC4", "Neighbour" = "#C77CFF", "DIAMOnD" = "#F8766D"),
+       legend.size = 10,
+       legend.position = "bottom") +
+  geom_point(aes(color = color), color = "white", show.legend = FALSE) +
+  geom_point(aes(color = color), alpha = 0.5)
+
+# Extracting the legend
+g <- ggplotGrob(RBDLegend)$grobs
+RBDLegend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+
+# Exporting the network as a inkscape and illustrator-friendly PDF
+pdf(file = "Images/RBDmodule_net.pdf", useDingbats = FALSE, height = 8, width = 8)
+grid.arrange(protoModulePlot, neighvertsModulePlot, RBDmoduleNetPlot, RBDLegend, ncol = 2, nrow = 3, layout_matrix = cbind(c(1,3,4), c(2,3,4)), widths = c(3.5, 4.5), heights = c(3, 4.7, 0.3))
+dev.off()
+```
+
+### 0. GO enrichment
+To further validate and characterise the RBD-module, a GO enrichment will be performed employing Biological processes. 
+
+```{r}
+# Transforming RBD module into a list
+setC <- vector('list', 1)
+setC[[1]] <- unlist(RBDmodule[, 1], use.names = FALSE)
+names(setC) <- 'setC'
+
+# Filtering org.Hs.egGO DB data frame by ontology and evidence codes. Only including those GOIDs whose EGIDs are included in the interactome
+EG2GOBPmodule <- dplyr::filter(org.Hs.egGODB, Ontology == "BP", Evidence == "EXP" | Evidence == "IDA" | Evidence == "IMP" | Evidence == "IGI" | Evidence == "IEP" | Evidence == "ISS" | Evidence == "ISA" | Evidence == "ISO") %>% dplyr::arrange(go_id) %>% dplyr::select(go_id, gene_id) %>% unique() %>% dplyr::filter(gene_id %in% EGall)
+
+# Converting each GOID into a list whose elements are the EGIDs. EG2GOBPmodule is converted into a list of list
+EG2GOBPmodule <- EG2GOBPmodule %>%
+  dplyr::group_by(go_id) %>%
+  dplyr::select(gene_id) %>%
+  split(f = EG2GOBPmodule$go_id) %>%
+  lapply(FUN = function(i){ 
+    as.data.frame(i) %>% 
+    dplyr::select(gene_id) %>%
+    unlist() %>%
+    as.character()})
+
+# GO biological enrichment of RBD nodes with NEAT.
+RBDmodulerich <- neat(alist = EG2GOBPmodule, blist = setC, network = interactomeGraph, nettype = "undirected", nodes = EGall, alpha = 0.01)
+
+# Adjusting the p-values for multiple test type I error
+RBDmodulerich$padj <- p.adjust(RBDmodulerich$p, method = 'BH')
+
+#Top 10 most significantly enriched GOIDs 
+RBDmodulerich10 <- RBDmodulerich %>% dplyr::arrange(padj) %>% dplyr::slice(1:10)
+
+# Preparing to export the 10 most enriched BP as .csv
+plop <- unlist(lapply(as.character(unlist(dplyr::select(RBDmodulerich10, 1), use.names = FALSE)), FUN = function(i){
+  Term(i)}))
+plop <- as.data.frame(plop)
+plop <- tibble::rownames_to_column(plop, "GOID")
+plop2 <- unlist(lapply(as.character(unlist(dplyr::select(RBDmodulerich10, 1), use.names = FALSE)), FUN = function(i){
+  Definition(i)}))
+plop2 <- as.data.frame(plop2)
+plop2 <- tibble::rownames_to_column(plop2, "GOID")
+plop <- dplyr::left_join(plop, plop2, by = "GOID")
+names(plop) <- c("GOID", "Term", "Definition")
+plop$Ontology <- "BP"
+```
+
+### 1. GO enrichment CC
+To further validate and characterise the RBD-module, a GO enrichment will be performed employing Cellular Compartment.
+
+```{r}
+# Filtering org.Hs.egGO DB data frame by ontology and evidence codes. Only including those GOIDs whose EGIDs are included in the interactome
+EG2GOCCmodule <- dplyr::filter(org.Hs.egGODB, Ontology == "CC", Evidence == "EXP" | Evidence == "IDA" | Evidence == "IMP" | Evidence == "IGI" | Evidence == "IEP" | Evidence == "ISS" | Evidence == "ISA" | Evidence == "ISO") %>% dplyr::arrange(go_id) %>% dplyr::select(go_id, gene_id) %>% unique() %>% dplyr::filter(gene_id %in% EGall)
+
+# Converting each GOID into a list whose elements are the EGIDs. EG2GOBPmodule is converted into a list of list
+EG2GOCCmodule <- EG2GOCCmodule %>%
+  dplyr::group_by(go_id) %>%
+  dplyr::select(gene_id) %>%
+  split(f = EG2GOCCmodule$go_id) %>%
+  lapply(FUN = function(i){ 
+    as.data.frame(i) %>% 
+    dplyr::select(gene_id) %>%
+    unlist() %>%
+    as.character()})
+
+# GO biological enrichment of RBD nodes with NEAT.
+RBDmodulerichCC <- neat(alist = EG2GOCCmodule, blist = setC, network = interactomeGraph, nettype = "undirected", nodes = EGall, alpha = 0.01)
+
+# Adjusting the p-values for multiple test type I error
+RBDmodulerichCC$padj <- p.adjust(RBDmodulerichCC$p, method = 'BH')
+
+#Top 10 most significantly enriched GOIDs 
+RBDmodulerichCC10 <- RBDmodulerichCC %>% dplyr::arrange(padj) %>% dplyr::slice(1:10)
+
+# Exporting the 10 most enriched BP as .csv
+plop3 <- unlist(lapply(as.character(unlist(dplyr::select(RBDmodulerichCC10, 1), use.names = FALSE)), FUN = function(i){
+  Term(i)}))
+plop3 <- as.data.frame(plop3)
+plop3 <- tibble::rownames_to_column(plop3, "GOID")
+plop4 <- unlist(lapply(as.character(unlist(dplyr::select(RBDmodulerichCC10, 1), use.names = FALSE)), FUN = function(i){
+  Definition(i)}))
+plop4 <- as.data.frame(plop4)
+plop4 <- tibble::rownames_to_column(plop4, "GOID")
+plop3 <- dplyr::left_join(plop3, plop4, by = "GOID")
+names(plop3) <- c("GOID", "Term", "Definition")
+plop3$Ontology <- "CC"
+
+# Exporting as .csv
+GO <- bind_rows(plop, plop3)
+write_excel_csv(GO, path = "GO.csv")
+```
+***
+# References
