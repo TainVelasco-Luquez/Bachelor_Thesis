@@ -5,7 +5,7 @@ Description of the `R` objects inside each file linked to the `HIassembly.Rmd`, 
 	2. ERGM fit
 	3. NEAT
 	4. Transitivity and Averege Path Length (APL) simulations for 1000 degree preserving randomisations
-2. `HIvalidation.RData contains:
+2. `HIvalidation.RData` contains:
 	1. Transitivity and Averege Path Length (APL) simulations for 1000 degree preserving randomisations
 	2. Graph and network HI objects
 	3. The stratified random sample from the HI2 to validate the APL and transitivity in it.
