@@ -1,4 +1,4 @@
-# The files follows the same order as in the thesis:
+# The files follows the same order as in the document:
 
 1. HIassembly.Rmd Is the R markdown file, which contains the code used to download and cleaning up the interactions files for Protein-Protein Interactions (PPI), Mebolic-Signaling interactions (MetaboSignal) and regulatory interactions. This file also render the conversion to Entrez gene ID and, finally, the assembly of the brain-specific Human Interactome.   
 2. HIassembly.html is the html version of the HIassembly file, in which the code and substantial explanations for each step is present in an interactive file.   
