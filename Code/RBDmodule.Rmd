@@ -7,6 +7,8 @@ output:
     toc: True
     toc_float: TRUE
 bibliography: /Users/imacoftain/Dropbox/newmin.bib
+editor_options: 
+  chunk_output_type: console
 ---
 # Copyright statement 
 ![](/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Images/cc-by-sa.png)
@@ -139,18 +141,25 @@ library("tibble")
 # Network Enrichment Analysis
 library("neat")
 library("org.Hs.eg.db")
+
+# For benchmarking
+library("tictoc")
+```
+
+## Set seed
+To ensure reproducible results from random samples performed in transitivity, APL and ERGM calculations in the Validating the RBD module section. This will also be useful when dealing with neat.
+```{r library, message=FALSE, warning=FALSE}
+set.seed(0)
 ```
 ***
 
 # RBD seed nodes
-After gather the RBD seed nodes extracted from literature and public DBs, it is time to visualise them as the protomodule in the interactome (*id est* RBD genes with the interactome' interactions)
+After gather the RBD seed nodes extracted from literature and public DBs, it is time to visualise them as the protomodule in the interactome (*id est* RBD genes with the interactome' interactions).
 
 ```{r message=FALSE, error=FALSE, warning=FALSE}
-# Importing the HI 2 network
-load("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/HI_2_networks.RData")
-
-# Importing the file
-RBDlist <- as.character(unlist(read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/Files_ready/RBD_list.txt", "\t", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE)))
+# Set the working dir to the parent folder where the repo was cloned.
+getwd()
+load("Data/RBDmodule.RData")
 
 # Excluding the nodes "6531" and "5673", otherwise there will be an error
 RBDlist <- RBDlist[RBDlist != "6531" & RBDlist != "5673"]
@@ -272,7 +281,6 @@ setA[[1]] <- RBDlist
 names(setA) <- 'setA'
 
 # Calling the DB class as data frame, for it handyness
-data("org.Hs.egGO")
 org.Hs.egGODB <- AnnotationDbi::as.data.frame(org.Hs.egGO)
 # N.B. this Annotation.DB object contain GOIDs maps per EGIDs, i.e. it answer the question: how many GOID do each EGID have?
 
@@ -287,6 +295,7 @@ org.Hs.egGODB %>% group_by(Ontology) %>% summarize(count = n()) %>% arrange(coun
 EG2GOBP <- dplyr::filter(org.Hs.egGODB, Ontology == "BP", Evidence == "EXP" | Evidence == "IDA" | Evidence == "IMP" | Evidence == "IGI" | Evidence == "IEP" | Evidence == "ISS" | Evidence == "ISA" | Evidence == "ISO") %>% dplyr::arrange(go_id) %>% dplyr::select(go_id, gene_id) %>% unique() %>% dplyr::filter(gene_id %in% EGall)
 
 # Converting each GOID into a list whose elements are the EGIDs. EG2GOBP is converted into a list of list
+tic()
 EG2GOBP <- EG2GOBP %>%
   dplyr::group_by(go_id) %>%
   dplyr::select(gene_id) %>%
@@ -296,12 +305,18 @@ EG2GOBP <- EG2GOBP %>%
     dplyr::select(gene_id) %>%
     unlist() %>%
     as.character()})
+toc()
+```
 
-# GO biological enrichment of RBD nodes with NEAT.  In UNDIRECTED networks, A and B can be inverted – you can do this, because you just swap the degrees of A and B in the hypergeometric (so, you invert n and K), and an hypergeometric with parameters n, K, N is the same as an hypergeometric K,n,N. That is why the RBD list of seed genes is in blist and the ist of GOBP in alist
+GO biological enrichment of RBD nodes with NEAT.  In UNDIRECTED networks, A and B can be inverted – you can do this, because you just swap the degrees of A and B in the hypergeometric (so, you invert n and K), and an hypergeometric with parameters n, K, N is the same as an hypergeometric K,n,N. That is why the RBD list of seed genes is in blist and the list of GOBP in alist
+```{r message=FALSE, error=FALSE, warning=FALSE}
+# To avoid errors make sure all features ID are in the same format in EG2GOBP, setA, interactomeGraph and EGall
+tic()
 RBDrich <- neat(alist = EG2GOBP, blist = setA, network = interactomeGraph, nettype = "undirected", nodes = EGall, alpha = 0.01)
+toc() # 996.172 sec elapsed
 
 # Adjusting the p-values for multiple test type I error
-RBDrich$padj <- p.adjust(RBDrich$p, method = 'BH')
+RBDrich$padj <- p.adjust(RBDrich$pvalue, method = 'BH')
 
 #Top 10 most significantly enriched GOIDs are going to be used as criterion to choose the number of DIAMOnD nodes to include in the RBD module
 RBDrich10 <- RBDrich %>% dplyr::arrange(padj) %>% dplyr::slice(1:10)
@@ -340,22 +355,13 @@ chmod +x DIAMOnD.py
 Inasmuch as DIAMOnD ranks all nodes in the HI, it is require a criterion, preferentially biological but a topological one or their combination can also be used, to decide when to stop the algorithm and select the number of nodes to be included in the RBD-module [@Ghiassian:2015hu]. The biological criterion is the GO enrichment for the ten most significantly enriched Biological process terms in the RBD-seed nodes.
 
 ```{r warning=FAlSE, error=FALSE, message=FALSE}
-# Importing the DIAMOnD prediction
-prediction_interactome_2_500 <- read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/Files_ready/prediction_interactome_2_500.txt",
-                                       "\t",
-                                       escape_double = FALSE,
-                                       trim_ws = TRUE)
-names(prediction_interactome_2_500) <- c("Rank", "Node")
-
 # Extracting only the node id column
 setB <- vector('list', 1)
 setB[[1]] <- unlist(prediction_interactome_2_500[, 2], use.names = FALSE)
 names(setB) <- 'setB'
 
-# Validating the first 500 DIAMOnD nodes with GO biological process enrichment for the terms
-
 # Setup parallel backend to use n-1 processors
-cl <- makeCluster(detectCores() - 1)
+cl <- makeCluster(detectCores() - 5)
 registerDoParallel(cl)  # Required for foreach
 strt <- Sys.time()  # For controlling the running time
 
@@ -368,12 +374,15 @@ validationGOBP <- foreach(i = 1:length(setB$setB),
                             neat::neat(alist = EG2GOBP[RBDrich10[, 1] ], blist = setA, network = interactomeGraph, nettype = "undirected", nodes = EGall, alpha = 0.05)
 }
 
-print(Sys.time() - strt)  # Total run time
+print(Sys.time() - strt)  # Total run time. Time difference of 34.877 mins
 
 stopCluster(cl)  # Giving back the resources to the OS
 
 # Adding the iteration column
 validationGOBP$Iteration <- rep(1:500, each = 10)
+
+# Correcting for multiple testing
+validationGOBP$padj <- p.adjust(validationGOBP$pvalue, method = 'BH')
 ```
 
 ```{r message=FALSE, fig.align="center", fig.cap=" The first 400 DIAMOnD nodes were added as this is the iteration in which the enrichment significance for GO biological process, drops below the alpha = 0.05 (dotted red line). The inset shows the first 100 nodes, expanding the colapsed lines in the bigger plot, due to their highly significant enrichment, as seen in the plotly graph."}
@@ -460,8 +469,6 @@ The observed RBD-module transitivity is compared against the random expectation 
 # Observed RBD-module transitivity
 igraph::transitivity(RBDmoduleGraph)  # 0.2205182
 
-set.seed(0)  # To ensure reproducible results from random samples
-
 # The null model is the Erdos-Renyi random graph
 trans.simulated <- mclapply(1:1000,
                               function(i){
@@ -495,8 +502,6 @@ The observed RBD-module average path length is compared against the random expec
 ```{r message=FALSE}
 # Observed RBD-module transitivity
 igraph::average.path.length(RBDmoduleGraph)  # 2.718564
-
-set.seed(0)  # To ensure reproducible results from random samples
 
 # Random expectation
 APL.simulated <- mclapply(1:1000,
@@ -538,8 +543,6 @@ For further validation of the RBD-module, instead of compare its properties agai
 ```{r message=FALSE}
 # Network object from ergm analyses
 RBDmoduleNet <- intergraph::asNetwork(RBDmoduleGraph)
-
-set.seed(0) 
 
 # Fitting the Bernoulli random model
 RBDmoduleNet.model <- ergm(RBDmoduleNet ~ edges, control = control.ergm(parallel = 1, parallel.type = "PSOCK"))

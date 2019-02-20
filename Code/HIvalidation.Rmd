@@ -7,6 +7,8 @@ output:
     toc: True
     toc_float: TRUE
 bibliography: /Users/imacoftain/Dropbox/newmin.bib
+editor_options: 
+  chunk_output_type: console
 ---
 # Copyright statement 
 ![](/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Images/cc-by-sa.png)
@@ -238,7 +240,7 @@ DIAMOnDValidation <- function(seed, DIAMOnD, GO, NET, NET_type, NET_names, alphA
 }
 ```
 
-## Packages
+       ## Packages
 ```{r library, message=FALSE, warning=FALSE}
 # To easily convert row.names to a first column
 library("tibble")
@@ -302,14 +304,14 @@ PPI_ready <- read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thes
 ppiGraph <- graph_from_data_frame(PPI_ready,directed = FALSE)
 ```
 
-The interactome is an igraph object class, with `r vcount(interactomeGraph)` vertices and `r ecount(interactomeGraph)` edges. It is a multilayer graph as it has `r sum(is.multiple(interactomeGraph, eids = E(interactomeGraph)))` multiedges and`r sum(is.loop(interactomeGraph, eids = E(interactomeGraph)))` loops, the former represent edges supported by multiple sources (*i.e* PPI, regulatory or metabosignal). In order to reduce multidimensonality, the interactome is going to be transformed into a simple graph, where the an edge weigth is proportional to the number of sources supporting such interaction:
-
+The interactome is an igraph object class, with `r vcount(interactomeGraph)` vertices and `r ecount(interactomeGraph)` edges. It is a multilayer graph as it has `r sum(is.multiple(interactomeGraph, eids = E(interactomeGraph)))` multiedges and`r sum(is.loop(interactomeGraph, eids = E(interactomeGraph)))` loops, the former represent edges supported by multiple sources (*i.e* PPI, regulatory or metabosignal). In order to reduce multidimensonality, the interactome is going to be transformed into a simple graph, where   an edge weigth is proportional to the number of sources supporting such interaction:
+    
 ```{r simple_interactome, warning=FALSE, message=FALSE}
 # Counting multiple edges and assigning it to a new edge attribute, "Weight"
 E(interactomeGraph)$Weight <- count.multiple(interactomeGraph)
 
 # Simplifying the interactome
-interactomeGraph <- simplify(interactomeGraph, remove.loops = TRUE, remove.multiple = FALSE)
+interactomeGraph <- simplify(interactomeGraph, remove.loops = TRUE, remove.multiple = FALSE) 
 
 # Checking
 is.simple(interactomeGraph)
@@ -977,7 +979,7 @@ cliques are complete subgraphs and hence are subsets of vertices that are fully 
 table(sapply(cliques(karate), length))
 table(sapply(maximal.cliques(karate), length))
 
-# Interactome validation
+   # Interactome validation
 
 In order to asses the validity of the topological features, and more broadly, of the human interactome brain/neurone-specific, such features are going to be compared against the random expectation of simulated networks. The premise is that the different the observed features in the interactome from the random ones, the more evidence supporting a biological underlying process generating them.
 

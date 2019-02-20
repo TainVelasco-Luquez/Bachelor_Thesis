@@ -831,7 +831,6 @@ Number of physical interactions among proteins:`r ecount(interactomeGraph2.LCC)`
 
 Diameter: `r diameter(interactomeGraph2.LCC)`
 
-
 ```{r message=FALSE, warning=FALSE}
 # Cleaning the environment
 rm(list = ls())
