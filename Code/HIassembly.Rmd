@@ -649,7 +649,7 @@ interactomeGraph <- graph_from_data_frame(interactome,
                                           directed = FALSE)
 
 # For the sake of simplicity only the largest connected componnent (LCC) will be used to perform the validation analyses [@Kolaczyk:2014cu, p. 57]:
-# Finding the number of components and their vertex number
+# Finding the number of components (sum of second row) and their vertex number (upper row)
 table(sapply(decompose.graph(interactomeGraph),
              vcount))
 

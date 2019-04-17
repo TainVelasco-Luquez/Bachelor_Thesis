@@ -494,7 +494,7 @@ RBDtrans.plot <- ggplot(data = trans.simulated, aes(x = Transitivity)) +
 
 ```
 
-The observed clustering coefficient of the RBD is very far awasy in term of standard deviations (38.47 $\sigma$) from the mean of the random expectation. 
+The observed clustering coefficient of the RBD is very far away, in term of standard deviations (38.47 $\sigma$), from the mean of the random expectation. 
 
 ### 1. APL
 The observed RBD-module average path length is compared against the random expectation from 1000 degree-preserving randomisations with random graphs of the form $G(n, p)$ where the probability to draw and edge between two randomly chosed nodes is $p = d/n$, where $n$ is the number of nodes in the network and $d$ is the critical point $d=1$. 
@@ -535,10 +535,8 @@ grid.arrange(HItrans.plot, HIAPL.plot, RBDtrans.plot, RBDAPL.plot, ncol = 2, nro
 dev.off()
 ```
 
-The observed average paths length are significantly (z-score = ) smaller than the random expectation for network drawn with an edge probability of 
-
 ### 2. ERGM
-For further validation of the RBD-module, instead of compare its properties against random network, a random model will be fited to RBD-module, expecting a poor resemblance between them (*i.e* the random model is not able to fully explain the observed features of the RBD-module, supporting the idea that a abiological process intead of a random one is giving place to such features.)
+For further validation of the RBD-module, instead of compare its properties against random network, a random model will be fited to RBD-module, expecting a poor resemblance between them (*i.e* the random model is not able to fully explain the observed features of the RBD-module, supporting the idea that a abiological process, intead of a random one, is giving place to such features).
 
 ```{r message=FALSE}
 # Network object from ergm analyses

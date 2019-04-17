@@ -4,6 +4,3 @@
 2. `HIassembly.html` is the html version of the HIassembly file, in which the code and substantial explanations for each step is present in an interactive file.
 3. `HIvalidation.Rmd` Is the `R` markdown file, which contains the topological and functional validation procedures, used to show the biological relevance of the HI constructed. The .html file is still to come as, due to its size, its rendering is quite expensive, compuationally.
 4. `RBDvalidation.Rmd` Is an `R` markdown file, which contains the code used to predict and validate, functionally and topologically, the putative REM sleep behavior disorder (RBD) module, according to the disease module hypothesis. The interactive .html file is still to come as, due to its size, its rendering is quite expensive, compuationally.
-
-## Todo list
-* Parallelise the assembly of the `EG2GOBP` object.

@@ -993,8 +993,8 @@ igraph::transitivity(interactomeGraph)
 interactomeTrans <- InteractomeSamplingTransitivity(interactomeGraph, 1000, detectCores() - 1)
 ```
 *Note that the number of simulations do not have a support. How to choose the number of simulations?*
-Recall that the null hypothesis for the Z-socre is: $$H_0 = cl_{simulated}(interactome) = cl_{observed}(interactome)$$ Therefore, with a confidence level of 99%, a $Z-score > +2.58$ or $Z-score < -2.58$ means that the observed clustering coefficient is very far away, in standar deviations, from the random value, obeying instead a biological processes [@Kolaczyk:2014cu, p. 94].[Resource for z-scores and p-values](http://pro.arcgis.com/en/pro-app/tool-reference/spatial-statistics/what-is-a-z-score-what-is-a-p-value.htm).
-Due to the massiveness of the HI, the transitivity computation ofr the simulated networks is too expensive computationally, therefore, following the same procedure as the plot from sample, a random sample without replacement will be performed in the HI to perform on this sample the transitivity validation. Inasmuch as the HI contains diferent proportion of interactions and nodes by source, a stratified random sample will be performed. Almost half of the HI vertices will be used, correspondng to 388 PPI (12.93% of vertices in the HI are ppi (2151*100)/16628. And the 12.93% of 5000 is 646.5. However, note that, inasmuch as a node mught be present in all the 3 sources, the summed proportions of the 3 sources is always greater than the HI number of vertices, which only conserved the unique nodes), 1405.761 metabosignal and 4891.749 regulatory
+Recall that the null hypothesis for the Z-socre is: $$H_0 = cl_{simulated}(interactome) = cl_{observed}(interactome)$$ Therefore, with a confidence level of 99%, a $Z-score > +2.58$ or $Z-score < -2.58$ means that the observed clustering coefficient is very far away, in standard deviations, from the random value, obeying instead a biological processes [@Kolaczyk:2014cu, p. 94].[Resource for z-scores and p-values](http://pro.arcgis.com/en/pro-app/tool-reference/spatial-statistics/what-is-a-z-score-what-is-a-p-value.htm).
+Due to the massiveness of the HI, the transitivity computation of the simulated networks is too expensive computationally, therefore, following the same procedure as the plot from sample, a random sample without replacement will be performed in the HI to perform on this sample the transitivity validation. Inasmuch as the HI contains diferent proportion of interactions and nodes by source, a stratified random sample will be performed. Almost half of the HI vertices will be used, correspondng to 388 PPI (12.93% of vertices in the HI are ppi (2151*100)/16628. And the 12.93% of 5000 is 646.5. However, note that, inasmuch as a node might be present in the 3 sources, the summed proportions of the 3 sources is always greater than the HI number of vertices, which only conserved the unique nodes), 1405.761 metabosignal and 4891.749 regulatory
 
 ```{r}
 # Reproducible results
@@ -1011,7 +1011,7 @@ sampleInteractomeGraph2 <- igraph::induced.subgraph(interactomeGraph,
                                            V(interactomeGraph)[sampleInteractome],
                                            impl = "auto")
 
-# Finding the number of components and their vertex number
+# Finding the number of components (sum of lower row) and their vertex number (upper row).
 table(sapply(decompose.graph(sampleInteractomeGraph2), vcount))
 
 # Extracting only the LCC
