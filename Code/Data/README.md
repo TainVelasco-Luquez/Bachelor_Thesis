@@ -21,3 +21,6 @@ Description of the `R` objects inside each file linked to the `HIassembly.Rmd`, 
     4. validationGOBP100 a data frame with the output from the loop described in the file `Code/RBDmodule.Rmd` for the first 100 iterations of DIAMOnD
     5. validationGOBP500 a data frame with the output from the loop described in the file `Code/RBDmodule.Rmd` for the 500 iterations of DIAMOnD
 >>>>>>> 68218bd5c97078d3282d429ebdef9feb711fbe0c
+4. `export_Mon_Mar_18_13_56_38_UTC_2019.csv` is the RegNetwork downloaded files.
+5. `HIassembly.RData` contains three objects: metabosignal, ppi and regulatory all ready interactions imported from the files with the same names in the Individual folder
+6. `Data/interactome.model.ergm.RData` contains fourth files: 1. `interactomeGraph.model` from chunk ergm_1 in `HI_validation.Rmd`, 2. `interactomeGraph.model.gof.deg` from chunk goodness_of_fit_degree in `HI_validation.Rmd`, 3. `interactomeGraph.model.gof.edge` from chunk goodness_of_fit_edges in `HI_validation.Rmd`, 4. `interactomeGraph.model.gof.dis` from chunk goodness_of_fit_geodesic in `HI_validation.Rmd`.

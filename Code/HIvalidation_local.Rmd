@@ -1,0 +1,1166 @@
+---
+title: "HIvalidation"
+author: "Tain Velasco-Luquez"
+date: "15/05/2017"
+output: 
+  html_document:
+    toc: True
+    toc_float: TRUE
+bibliography: /Users/imacoftain/Dropbox/newmin.bib
+editor_options: 
+  chunk_output_type: console
+---
+# Copyright statement 
+![](/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Images/cc-by-sa.png)
+
+This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+```{r include=FALSE, eval=FALSE}
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons Licence" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
+```
+
+
+# Author information
+**Tain Velasco-Luquez** (tvelasco@javeriana.edu.co). Bioinformatics and Systems Biology Group (GIBBS), Instituto de genética, Universidad Nacional de Colombia
+Bogotá D.C., Colombia.
+
+# Script description
+The main objective of this script is to validate the human interactome (HI) assembled in the HIassembly.Rmd file. Definition of functions and generation of plots are included. For further details refer to the main document of the thesis. Style guide is followed according to the [ R style guide](https://google.github.io/styleguide/Rguide.xml#filenames) 
+
+## Function definitions
+```{r message=FALSE, warning=FALSE, include=FALSE}
+rm(list = ls())
+```
+### 0. Validating the interactome against the random expectation of its transitivity. 
+
+```{r InteractomeSamplingTransitivity, message=FALSE, warning=FALSE}
+# x is an igraph object representing the largest connected component (LCC) of the interactome and n.sims is the number (integer object) of simulations to be performed. n.cor is the integer representing the number of cores to use: n.cor <- detectCores() - 1
+InteractomeSamplingTransitivity <- function(x, n.sim, n.cor){
+  
+  set.seed(0)  # To ensure reproducible results from random samples
+  
+  # Extracting the number of vertices from the original interactome
+  verte.x <- igraph::vcount(x)
+  
+  # The null model is the Erdos-Renyi random graph
+  trans.simulated <- mclapply(1:n.sim,
+                              function(i){
+                                round(igraph::transitivity(igraph::rewire(igraph::sample_gnp(n = verte.x,
+                                                               p = 0.5,
+                                                               directed = FALSE,
+                                                               loops = FALSE),
+                                                    with = keeping_degseq(niter = verte.x * 10 ))),
+                                      digits = 2)
+                                },
+                              mc.cores = n.cor)  # Alternatively one can set niter to vcount(x) * 10 or verte.x * 10 as adviced by the author. Espinoza http://biogrid.engr.uconn.edu/REU/Reports_12/Final_Reports/Max.pdf recommend 100*e.count as the minimum
+  
+  # Coercing the list class to numeric class, and this in turn into a data frame for ggplot2 compatibility
+  trans.simulated <- as.data.frame(as.numeric(unlist(trans.simulated)))
+  
+  #Setting the column name
+  names(trans.simulated) <- c("Transitivity", "Source")
+  
+  # Filling Source as a factor instead of Character class 
+  trans.simulated$Source <- "Simulated"
+  trans.simulated$Source <- as.factor(trans.simulated$Source)
+  
+  # Adding the observed transitivity to trans.simulated
+  trans.x <- as.numeric(unlist(igraph::transitivity(x)))  # Observed global clustering coefficient 
+  trans.simulated <- rbind(trans.simulated, list(trans.x, "Observed"))
+  
+  # Calculating the Z-score = ((X - μ.random) / σ.random), to see how many σ a given data set is from its μ, between the observed transitivity and the average transitivity from random samples. Where mean(trans.simulated) is the simulated average global clustering coefficient and sd(trans.simulated) its standard deviation
+  z.score <- round((trans.x - mean(trans.simulated))/sd(trans.simulated), 3)
+  
+  # Result message
+  cat("\nThe observed Clustering Coefficient (C) is:", trans.x, "\nThe simulated average Clustering Coefficient (C_s) is:", mean(trans.simulated), "\nThe Z-score is:", z.score)
+  
+  
+  # Creating the plot
+  transitivity.plot <- ggplot(data = trans.simulated,
+         aes(x = Transitivity,
+             fill = Source)) +
+    geom_histogram(alpha = .5) +
+    geom_vline(aes(xintercept = mean(Transitivity[Source != "Observed"],
+                                     na.rm = TRUE)),
+               linetype = "dashed",
+               size = 1,
+               color = "red") +
+    geom_vline(aes(xintercept = median(Transitivity[Source != "Observed"],
+                                       na.rm = TRUE)),
+               linetype = "dashed",
+               size = 1,
+               color = "green") +
+    ylab("P(<C>)") +
+    xlab("Transitivity (<C>)")
+  
+return(transitivity.plot, trans.simulated)  
+}
+```
+
+The simulation creates n.sim of random graphs (with sample_gnp()) with edge rewiring while preserving the degree distribution (with rewiring(keeping_degseq(niter = 1000))), also called Degree Preserving Randomization, and then calculates its transitivity for each n.sim graph. Comparing against a randomly created networks one can stablish the goodness of fit [@Kolaczyk:2014cu, p. 94]
+
+```{r message=FALSE, warning=FALSE, include=FALSE, eval=FALSE}
+# Alternative plot
+ggplot(trans.simulated,
+         aes(x = Transitivity)) +
+    geom_histogram(aes(y = ..density..),
+                   binwidth = .01) +
+    geom_point(data = round(trans.x,
+                            2),
+               aes(x = trans.x,
+                   y = 0),
+               colour = "orange",
+               size = 2) +
+    geom_density(fill = "red",
+                 colour = "red",
+                 alpha = 0.2) +
+    geom_vline(aes(xintercept = mean(Transitivity,
+                                     na.rm = TRUE)),
+               color = "red",
+               linetype = "dashed",
+               size = 1) +
+    ylab("Density") +
+    xlab("Transitivity")
+# Generating 1 random network of size vcount(interactomeLCC)
+gnp <- sample_gnp(n = vcount(interactome.LCC), p = 0.5, directed = FALSE, loops = FALSE)
+# Random clustering coefficient
+transitivity(gnp)
+
+```
+
+
+### 1. Validating the interactome against the random expectation of its average path length.
+
+```{r InteractomeSamplingAPL, message=FALSE, warning=FALSE}
+# x is an igraph object representing the largest connected component (LCC) of the interactome and n.sims is the number (integer object) of simulations to be performed. n.cor is the integer representing the number of cores to use: n.cor <- detectCores() - 1
+InteractomeSamplingAPL <- function(x, n.sim, n.cor){
+  
+  set.seed(0)  # To ensure reproducible results from random samples
+  
+  # Extracting the number of vertices from the original interactome
+  verte.x <- vcount(x)
+  
+  # The null model is the Erdos-Renyi random graph
+  APL.simulated <- mclapply(1:n.sim,
+                              function(i){
+                                round(average.path.length(rewire(sample_gnp(n = verte.x,
+                                                               p = 0.5,
+                                                               directed = FALSE,
+                                                               loops = FALSE),
+                                                    with = keeping_degseq(verte.x * 10 ))),
+                                      digits = 2)
+                                },
+                              mc.cores = n.cor)
+  
+  # Coercing the list class to numeric class, and this in turn into a data frame for ggplot2 compatibility
+  APL.simulated <- as.data.frame(as.numeric(unlist(APL.simulated)))
+  
+  #Setting the column names
+  names(APL.simulated) <- c("APL", "Source")
+  
+  # Filling Source as a factor instead of Character class 
+  APL.simulated$Source <- "Simulated"
+  APL.simulated$Source <- as.factor(APL.simulated$Source)
+  
+  # Adding the observed average path length to APL.simulated
+  APL.x <- as.numeric(unlist(average.path.length(x)))  # Observed APL 
+  APL.simulated <- rbind(APL.simulated, list(APL.x, "Observed"))
+  
+  # Calculating the Z-score = ((X - μ.random) / σ.random), to see how many σ a given data set is from its μ, between the observed APL and the average APL from random samples. Where mean(APL.simulated) is the simulated average APL and sd(APL.simulated) its standard deviation
+  z.score <- round((APL.x - mean(APL.simulated))/sd(APL.simulated), 3)
+  
+  # Result message
+  cat("\nThe observed Average Path Length (lG) is:", APL.x, "\nThe simulated Average Path Length (lG_s) is:", mean(APL.simulated, na.rm = TRUE), "\nThe Z-score is:", z.score)
+  
+  
+  # Creating the plot
+  APL.plot <- ggplot(data = APL.simulated,
+         aes(x = APL,
+             fill = Source)) +
+    geom_histogram(alpha = .5) +
+    geom_vline(aes(xintercept = mean(APL[Source != "Observed"],
+                                     na.rm = TRUE)),
+               linetype = "dashed",
+               size = 1,
+               color = "blue") +
+    geom_vline(aes(xintercept = median(APL[Source != "Observed"],
+                                       na.rm = TRUE)),
+               linetype = "dashed",
+               size = 1,
+               color = "red") +
+    ylab("P(<lG>)") +
+    xlab("Average path length (lG)")
+  
+return(APL.plot, APL.simulated)  
+}
+```
+
+### 2. Single legend for multiplot
+When unifying several plots into one, it is useful to have a single legend for all of them, and thus avoiding redundancy and saving space for the important information. This function was taken from (stackoverflow)[http://stackoverflow.com/questions/12539348/ggplot-separate-legend-and-plot] and modiefied according to (STHDA)[http://www.sthda.com/english/wiki/ggplot2-easy-way-to-mix-multiple-graphs-on-the-same-page-r-software-and-data-visualization] and all credit is for them.
+```{r single_legend, message=FALSE, warning=FALSE}
+library(gridExtra)
+get_legend <- function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
+```
+
+```{r include=FALSE, eval=FALSE}
+### 3. Validating the module with GO enrichment
+# Inasmuch as DIAMOnD rank all the nodes in the interactome, it is required a criterion to decide how many predicted nodes will be included. This functions return a dataframe that contains the iteration number (same as rank from the DIAMOnD output) and a pvalue for each GO term in "GO" at each iteration. *id est* pseudocode:
+# 
+# 1. Add the first DIAMOnD node to the seed nodes
+# 2. Calculate the pvalue of the n GOIDs enrichmnet for the seed+1 module
+# 3. Execute step 1
+# 
+# The output can be ploted as pvalue vs iteration for every GOID, and the number of DIAMOnD genes to consider is the iterations step at which the pvalue of the enrichment for most of GOIDs is no more significant or augment more than the more significant pvalue
+
+# Seed is a character list containing the proto-module seed genes
+# DIAMOnD is a 1 column data frame containing the predicted n nodes from the DIAMOnD algorithm. You need to delete the "rank" column
+# Go is the list of GO terms (note a single ontology is required, if more than 1 ontology then think about improving the fuction)
+# NET is anetwork (interactome) containing the seed and DIAMOnD genes. See ?neat, option network
+# NET_type either "directed" or "undirected". see ?neat nettype option
+# NET_names is the list of node names of NET. see ?neat option nodes. Is obtained by running NET_names <- sort(V(NET)$name)
+# alphA is the probability to commit error type I. see ?neat, alpha option
+# threads is the number of cores to use in the computation. From ?mclapply. detectCores() - 1 is a good option, but for customisation it is let for user definition
+DIAMOnDValidation <- function(seed, DIAMOnD, GO, NET, NET_type, NET_names, alphA, threads){
+  n <- mclapply(X = DIAMOnD, mc.cores = threads, FUN = function(i){
+    
+    # Adding the first element of DIAMOnD to seed
+    seed[[1]] <- c(seed[[1]], unlist(i, use.names = FALSE))
+    
+    # Enrichment at iteration i
+    neat(alist = GO, blist = seed, network = NET, nettype = NET_type, nodes = NET_names, alpha = alphA)
+    
+  })
+  
+  # Return the data frame with as many columns as a typical output from NEAT and as many rows as nodes in the DIAMOnD file * number og GO terms. id est, (n GOIDs * n DIAMOnD nodes)x(6)
+  return(n)
+}
+```
+
+       ## Packages
+```{r library, message=FALSE, warning=FALSE}
+# To easily convert row.names to a first column
+library("tibble")
+
+# Praefinitum network manipulation package
+library("igraph")
+
+# For network exchange
+library("intergraph")
+
+# To employ the ggplot2 power with igraph and network object classes
+library("ggnetwork")
+library("ggnet")
+
+# To arrange multiple plots
+library("gridExtra")
+
+# To assess the power law distribution
+library("poweRlaw")
+
+# To paralellise the code
+library("parallel")
+library("foreach")
+
+# To exponential random graph model simulations
+library("ergm")
+
+# To enhance the file importing process
+library("readr")
+
+# To general file manipulation
+library("dplyr")
+```
+***
+
+# Interactome description
+## Files importing
+Importing the files created in the HIassemble.RMD file to create the brain-specific human interactome, from now on interactome, that will be used to predict the RBD disease module.
+```{r file_importing, message=FALSE, warning=FAlSE}
+# Reading the files
+# Interactome
+interactome_ready <- unique(read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/Files_ready/interactome_ready.txt", 
+                          "\t",
+                          escape_double = FALSE,
+                          col_types = cols(EG_node1 = col_number(),
+                                           EG_node2 = col_number()),
+                          trim_ws = TRUE))
+interactomeGraph <- graph_from_data_frame(interactome_ready, directed = FALSE)
+
+# Metabolic-Signaling
+metabosignal_ready <- unique(read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/Files_ready/metabosignal_ready.txt", "\t", escape_double = FALSE, trim_ws = TRUE))
+metabosignalGraph <- graph_from_data_frame(metabosignal_ready,
+                                          directed = FALSE)
+
+# Regulatory
+regulatory_ready <- read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/Files_ready/regulatory_ready.txt", "\t", escape_double = FALSE, trim_ws = TRUE)
+regulatoryGraph <- graph_from_data_frame(regulatory_ready,directed = FALSE)
+
+# Protein-Prtein Interactions
+PPI_ready <- read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/Files_ready/ppi_ready.txt", "\t", escape_double = FALSE, trim_ws = TRUE)
+ppiGraph <- graph_from_data_frame(PPI_ready,directed = FALSE)
+```
+
+The interactome is an igraph object class, with `r vcount(interactomeGraph)` vertices and `r ecount(interactomeGraph)` edges. It is a multilayer graph as it has `r sum(is.multiple(interactomeGraph, eids = E(interactomeGraph)))` multiedges and`r sum(is.loop(interactomeGraph, eids = E(interactomeGraph)))` loops, the former represent edges supported by multiple sources (*i.e* PPI, regulatory or metabosignal). In order to reduce multidimensonality, the interactome is going to be transformed into a simple graph, where   an edge weigth is proportional to the number of sources supporting such interaction:
+    
+```{r simple_interactome, warning=FALSE, message=FALSE}
+# Counting multiple edges and assigning it to a new edge attribute, "Weight"
+E(interactomeGraph)$Weight <- count.multiple(interactomeGraph)
+
+# Simplifying the interactome
+interactomeGraph <- simplify(interactomeGraph, remove.loops = TRUE, remove.multiple = FALSE) 
+
+# Checking
+is.simple(interactomeGraph)
+```
+
+The number of vertices is `r vcount(interactomeGraph)` connected by `r ecount(interactomeGraph)` edges. Despite its massiveness, just as many real-world network, it displays a relative small diameter: `r diameter(interactomeGraph)`.
+
+```{r message=FALSE, warning=FALSE, include=FALSE, eval=FALSE}
+summary(interactomeGraph)  # General information
+
+V(interactomeGraph)  # Number of vertices
+
+E(interactomeGraph)  # Number of edges 
+
+class(interactomeGraph)  # Object class
+
+is.simple(interactomeGraph)  # Either simple or multi layer graph
+
+# If it is multilayer, then:
+# To look for loops
+sum(is.loop(interactomeGraph, eids = E(interactomeGraph)))
+
+# To look for multiple edges
+sum(is.multiple(interactomeGraph, eids = E(interactomeGraph)))
+
+# To count multiple edges as a contingency table
+table(count.multiple(interactomeGraph, eids = E(interactomeGraph)))
+
+# To remove multiple edges but keep multiplicity of the graph
+# E(g)$weight <- count.multiple(g)
+# g <- simplify(g)
+# any(is.multiple(g))
+# E(g)$weight
+
+# To see if there are isolated subgraphs.
+is.connected(interactomeGraph)
+
+# Longest distance in the graph
+diameter(interactomeGraph)
+```
+
+## Proportion of edges per source
+It is useful to know the individual contribution of each source to the overall interactome interactions, this can be done in a couple of useful ways: venn diagrams, to see complementarity, and categorical bar charts of proportions, as seen in the plot 1.
+
+Regulatory interaction cope with the vast majority of interactions, despite regulatory_ready.txt does not has duplicated interactions. The large number of interactions may obey to several causes or, which is more plausible, a combination of them:
+ * The presence of very promiscuous TF and, in a smaller extent, enhancer and/or promoters. Thus indeed reflecting the complexity of the system.
+ * CAGE generates false positives?
+ * The number of tissues contemplated for regulatory interactions is too large (33) compared with that for PPI and metabosignal (5). And taking into account that each tissue *per se* has many connections, summing them up created the overepresentation observed.
+ * when converting the directed network to an undirected one, the scale-freeness is lost?
+ * Inasmuch as regulatory interactions from marbach are inferred, may obey to false positives of prediction that when compared with the experimentally validates and manually curated ppi and metabosignal interactions, are very very large
+
+In order to reduce the overepresentation of regulatory interactions, only those pertaining to the adult brain are going to be used: 
+
+```{r interactome2, message=FALSE, warning=FAlSE}
+# Importing the file
+interactome_ready_2 <- read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/Files_ready/interactome_ready_2.txt", "\t", escape_double = FALSE, col_types = cols(EG_node1 = col_character(), EG_node2 = col_character()), trim_ws = TRUE)
+
+# Creating the igraph object
+interactomeGraph <- igraph::graph_from_data_frame(interactome_ready_2, directed = FALSE)
+
+# Counting multiple edges and assigning it to a new edge attribute, "Weight"
+E(interactomeGraph)$Weight <- igraph::count.multiple(interactomeGraph)
+
+# Removing loops
+interactomeGraph <- igraph::simplify(interactomeGraph, remove.loops = TRUE, remove.multiple = FALSE)
+
+# Extracting topological properties of interest
+vcount(interactomeGraph)
+ecount(interactomeGraph)
+mean(degree(interactomeGraph, normalized = FALSE))
+median(degree(interactomeGraph, normalized = FALSE))
+max(degree(interactomeGraph, normalized = FALSE))
+min(degree(interactomeGraph, normalized = FALSE))
+transitivity(interactomeGraph)
+average.path.length(interactomeGraph)
+diameter(interactomeGraph)
+```
+
+Lets create the plot comparing the proportion of edges per source in both interactomes
+
+```{r edgeproportion_source, message=FALSE, warning=FALSE, fig.align="center", fig.cap="Suplementary figure 1. Proportion of edges per source in the interactome with all regulatory interactions (A) and with whole brain only regulatory interactions (B) included. Despite the regulatory overepresentation persit when employing only whole-brain regulatory interactions, the dimensionality of the interactome reduces by a factor of 2.5."}
+# Proportion of interactions per source in the HI 1. , colour="black"
+int1barproportion <- ggplot(interactome_ready ,aes(x = "", fill = Source)) + 
+  geom_bar(position = "fill", width = 0.3) +
+  scale_fill_manual(values = c("tomato", "gold", "gray50")) +
+  labs(x = "", y = "Proportion of edges") +
+  ggtitle("A") 
+
+# Proportion of interactions per source in the HI 2
+int2barproportion <- ggplot(interactome_ready_2 ,aes(x = "", fill = Source)) + 
+  geom_bar(position = "fill", width = 0.3) +
+  scale_fill_manual(values = c("tomato", "gold", "gray50")) +
+  labs(x = "", y = "Proportion of edges") +
+  ggtitle("B")
+
+# Joinning plots for suplementary figure 1 and exporting them as a inkscape and illustrator-friendly PDF
+pdf(file = "Images/porportion_per_source.pdf", useDingbats = FALSE, height = 4, width = 8)
+grid.arrange(int1barproportion, int2barproportion, ncol = 2, nrow = 1)
+dev.off()
+```
+
+Even reducing the number of regulatory interactions, they still are the most prominent of the sources, apporting the 97.4 % of interactions to the interactome, whereas metabolic-signaling and PPI aport the 2.2% and 0.4 %, respectively. Despite it was not posible to reduce the overepresentation of regulatory interactions, the dimensionalyty of the network reduces by a facor of 2.5 (3077707/1234593. Edges in both interactomes). Therefore, further analyses will be computed using the interactome_2 instead of the one with full regulatory interactions.
+
+## Plot from sample
+Plotting the interactome, due to its massiveness, would end up in an inteligible hairball. Therefore, for visualisation purposses, a random sample (not necesarily a representative sample) is drawn from the interactome and plotted:
+
+```{r plot_sample_1, message=FALSE, error=FALSE, fig.align="center", fig.cap=""}
+# Reproducible results
+set.seed(0) 
+
+# Randomly sampling 300 nodes from the interactomeGraph. nOte that sometimes ppi nodes are not displayed due to their low representation compared with metabosignal and regulatory. To obtain ppi nodes, iteration of the sampling is required.
+sampleInteractome <- sample(1:vcount(interactomeGraph),
+                            300)
+
+# Subsetting the interactomeGraph by the randomly selected nodes while preservinf the edges. Anothe option is: http://stackoverflow.com/questions/37351411/color-by-degree-in-r-using-ggnet2
+sampleInteractomeGraph <- igraph::induced.subgraph(interactomeGraph,
+                                           V(interactomeGraph)[sampleInteractome],
+                                           impl = "auto")
+
+# Finding the number of components and their vertex number
+table(sapply(decompose.graph(sampleInteractomeGraph),
+             vcount))
+
+# Extracting only the LCC
+sampleInteractomeGraph <- decompose.graph(sampleInteractomeGraph)[[1]]
+
+# Creating the dataframe from the randomly sampled LCC from the interactome. Note that one can use the function asNetwork() from intergraph package to easy transfer igraph <=> network classes
+sampleInteractomeDF <- igraph::as_data_frame(sampleInteractomeGraph)
+
+# Creating the network class object recognisable by ggnet2
+sampleInterac <- network::network(sampleInteractomeDF[, 1:2])
+
+# Adding the Degree, Source and color attributes
+sampleInterac %v% "Degree" <- sna::degree(sampleInterac)
+sampleInterac %v% "Source" <- sampleInteractomeDF$Source
+```
+``` {r plot_sample_2, message=FALSE, error=FALSE}
+# Plotting with ggnet2
+sampleInteracPlot <- ggnet2(sampleInterac,
+       mode = "fruchtermanreingold",
+       node.size = "Degree",
+       size.cut = 40,
+       size.max = 200,
+       size.min = 1,
+       node.color = "Source",
+       alpha = 0.8,
+       edge.alpha = 0.7,
+       edge.size = 0.1,
+       edge.color = "grey",
+       palette = c(regulatory = "gray50", metabosignal = "tomato", ppi = "gold")) +
+  geom_point(aes(color = color), color = "white") +
+  geom_point(aes(color = color), alpha = 0.5)
+
+# Set palette = c(regulatory = "#619CFF", metabosignal = "#F8766D", ppi = "#00BA38")) for default ggplot2 first 3 colors
+
+# Exporting the network as a inkscape and illustrator-friendly PDF
+ggsave(file = "Images/netplot_sample.pdf", plot = sampleInteracPlot, useDingbats = FALSE, width = 8, height = 7)
+```
+
+```{r include=FALSE, eval=FALSE}
+# Plotting using ggnetwork
+#V(sampleInteractomeGraph)$size <- degree(sampleInteractomeGraph)
+# g <- unique(ggnetwork(sampleInteractomeGraph, layout = "kamadakawai"))
+# g <- g[complete.cases(g), ]
+# 
+# ggplot(ggnetwork(sampleInteractomeGraph, layout = "kamadakawai"), aes(x = x, y = y, xend = xend, yend = yend),
+#        na.rm = TRUE) +
+#   geom_edges(aes(size = Weight), curvature = 0.1,
+#              color = "grey50",
+#              alpha = 0.25) +
+#   geom_nodes(aes(color = Source), size = sna::degree(sampleInteractomeGraph)) +
+#   theme_blank() +
+#   theme(legend.position = "right")
+# #
+# # # #   ploting using Polnet (2016) guidelines
+# l <- layout_with_fr(sampleInteractomeGraph)
+# colrs <- c("gray50", "tomato", "gold")
+# V(sampleInteractomeGraph)$color <- colrs[V(sampleInteractomeGraph)$Source]
+# 
+# V(sampleInteractomeGraph)$size <- degree(sampleInteractomeGraph)
+# E(sampleInteractomeGraph)$width <- E(sampleInteractomeGraph)$Weight
+# plot(sampleInteractomeGraph, layout = l, vertex.label = NA, edge.curved = 0.3, vertex.size = 5)
+# 
+# 
+# Retrieving the adjacency for heatmap ploting
+# sampleInteractomeAdjacency <- as_adjacency_matrix(sampleInteractomeGraph,
+#                                                   type = "upper",
+#                                                   names = TRUE,
+#                                                   attr = "Weight",
+#                                                   sparse=FALSE)
+
+# Constructing the heatmap 
+#palf <- colorRampPalette(c("gold", "dark orange"))
+# heatmap(sampleInteractomeAdjacency,
+#         Rowv = NA,
+#         Colv = NA,
+#         col = palf(100),
+#         scale="none",
+#         margins=c(10,10))
+```
+
+```{r}
+# Simple code to get the legend in points relative to the source type to be included in the figure 2
+sampleInteracPlotLEGEND <- ggnet2(sampleInterac,
+       mode = "fruchtermanreingold",
+       size.max = 200,
+       size.min = 1,
+       node.color = "Source",
+       palette = c(regulatory = "gray50", metabosignal = "tomato", ppi = "gold")) +
+  theme(legend.position = "bottom",
+        legend.direction = "horizontal")
+
+# Extract the legend
+legendSource <- get_legend(sampleInteracPlotLEGEND)
+
+# Cleaning the environment
+rm(sampleInteracPlotLEGEND)
+```
+
+The network map reflect the overall overepresentation of the regulatory interactions and the presence of highly connected nodes, which represent promiscuous transcription factors.
+
+##  Centrallity measures 
+###0. **Degree ($k$)** 
+Represents the number of edges ($L$) per node, calculated as: $$L = 1/2 \sum_{i=1}^N {k_i}$$
+
+Average degree per vertex ($<k>$): `r mean(degree(interactomeGraph, normalized = FALSE))`
+
+Median degree: `r median(degree(interactomeGraph, normalized = FALSE))`
+
+Maximum degree: `r max(degree(interactomeGraph, normalized = FALSE))`
+
+Minimum degree: `r min(degree(interactomeGraph, normalized = FALSE))`
+
+The cumulative distribution of the degree has a heavy tailed form, indicating that there is a greater chance to randomly select a node with low degree ($k < 20$) than selecting a node with high degree, also known as hubs: 
+
+```{r degree_plot, echo=FALSE, warning=FALSE, message=FALSE, fig.align="center", fig.cap="Figure 1. Cumulative P(k) of the interactome reveals hubs in the heavy tail"}
+# Cumulative degree distribution
+CumDegDis <- ggplot() +
+  geom_point(aes(c(1:length(degree.distribution(interactomeGraph,
+                                                cumulative = TRUE)
+                            )),
+                 degree.distribution(interactomeGraph,
+                                     cumulative = TRUE)),
+             colour = 'black',
+             size = 1) +
+  geom_vline(aes(xintercept = mean(igraph::degree(interactomeGraph,
+                                          normalized = FALSE)),
+                 color = "Mean"),
+               linetype = "dashed",
+               size = 1,
+               show.legend = T) +
+    geom_vline(aes(xintercept = median(igraph::degree(interactomeGraph,
+                                              normalized = FALSE)),
+                 color = "Median"),
+               linetype = "dashed",
+               size = 1,
+               show.legend = T) +
+  scale_x_continuous(trans = "log") +
+  scale_y_continuous(trans = "log") +
+  labs(x = "Degree (k)", y = "P(k)") +
+  scale_color_manual(name = "Statistics", values = c("Mean" = "red", "Median" = "green")) +
+  ggtitle("A") +
+  theme(legend.position = "bottom",
+        legend.direction = "horizontal")
+
+# To get the raw distribution, remove the "cumulative = TRUE" option from degree.distribution(). 
+
+# To unify the legend when creating the figure 2
+legendStats <- get_legend(CumDegDis)
+CumDegDis <- CumDegDis + theme(legend.position = "none",
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank())
+```
+```{r include=FALSE, eval=FALSE}
+# For a more sinthetic geom_vline() call in the cumulative distribution: http://stackoverflow.com/questions/34186081/vline-legends-not-showing-on-geom-histogram-type-plot 
+# for plotting degree distributions with ggplot2: https://blog.ouseful.info/2012/01/27/experimenting-with-igraph-and-a-hint-towards-ways-of-measuring-engagement/
+# And https://rpubs.com/lgadar/power-law
+# 
+# Plotting the degree distribution with base::plot instead of ggplot2
+# Degree distribution plot
+plot(degree.distribution(interactomeGraph, 
+                         cumulative = TRUE),
+     xlab = "Degree (k)",
+     ylab = "P(k)",
+     col = "blue")
+
+# Adding the mean line
+abline(v = mean(degree(interactomeGraph,
+                       normalized = FALSE)),
+       col = "red")
+
+# Adding the median line
+abline(v = median(degree(interactomeGraph,
+                         normalized = FALSE)),
+       col = "green")
+
+# Adding the legend
+legend(x = "topright",
+       c("Mean", "Median"),
+       lty = c(1, 1),
+       lwd = c(2.5, 2.5),
+       col = c("red", "green"),
+       inset = 0.03) 
+```
+
+To see which source of interactions is generating the bimodal distribution, $P(k)$ per source are going to be ploted:
+
+```{r}
+# $P(k)_{metabosignal}$
+CumDegDisMetaboSignal <- ggplot() +
+  geom_point(aes(c(1:length(degree.distribution(metabosignalGraph,
+                                                cumulative = TRUE)
+                            )),
+                 degree.distribution(metabosignalGraph,
+                                     cumulative = TRUE)),
+             colour = "tomato",
+             size = 1) +
+  geom_vline(aes(xintercept = mean(igraph::degree(metabosignalGraph,
+                                          normalized = FALSE)),
+                 color = "Mean"),
+               linetype = "dashed",
+               size = 1,
+               show.legend = FALSE) +
+    geom_vline(aes(xintercept = median(igraph::degree(metabosignalGraph,
+                                              normalized = FALSE)),
+                 color = "Median"),
+               linetype = "dashed",
+               size = 1,
+               show.legend = FALSE) +
+  scale_x_continuous(trans = "log") +
+  scale_y_continuous(trans = "log") +
+  labs(x = "Degree (k)", y = "P(k)") +
+  scale_color_manual(name = "Statistics", values = c("Mean" = "red", "Median" = "green")) +
+  ggtitle("C") +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+# $P(k)_{PPI}$
+CumDegDisPPI <- ggplot() +
+  geom_point(aes(c(1:length(degree.distribution(ppiGraph,
+                                                cumulative = TRUE)
+                            )),
+                 degree.distribution(ppiGraph,
+                                     cumulative = TRUE)),
+             colour = "gold",
+             size = 1) +
+  geom_vline(aes(xintercept = mean(igraph::degree(ppiGraph,
+                                          normalized = FALSE)),
+                 color = "Mean"),
+               linetype = "dashed",
+               size = 1,
+               show.legend = FALSE) +
+    geom_vline(aes(xintercept = median(igraph::degree(ppiGraph,
+                                              normalized = FALSE)),
+                 color = "Median"),
+               linetype = "dashed",
+               size = 1,
+               show.legend = FALSE) +
+  scale_x_continuous(trans = "log") +
+  scale_y_continuous(trans = "log") +
+  labs(x = "Degree (k)", y = "P(k)") +
+  scale_color_manual(name = "Statistics", values = c("Mean" = "red", "Median" = "green")) +
+  ggtitle("D") +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+# $P(k)_{regulatory}$
+CumDegDisRegulatory <- ggplot() +
+  geom_point(aes(c(1:length(degree.distribution(regulatoryGraph,
+                                                cumulative = TRUE)
+                            )),
+                 degree.distribution(regulatoryGraph,
+                                     cumulative = TRUE)),
+             colour = "gray50",
+             size = 1) +
+  geom_vline(aes(xintercept = mean(igraph::degree(regulatoryGraph,
+                                          normalized = FALSE)),
+                 color = "Mean"),
+               linetype = "dashed",
+               size = 1,
+               show.legend = FALSE) +
+    geom_vline(aes(xintercept = median(igraph::degree(regulatoryGraph,
+                                              normalized = FALSE)),
+                 color = "Median"),
+               linetype = "dashed",
+               size = 1,
+               show.legend = FALSE) +
+  scale_x_continuous(trans = "log") +
+  scale_y_continuous(trans = "log") +
+  labs(x = "Degree (k)", y = "P(k)") +
+  scale_color_manual(name = "Statistics", values = c("Mean" = "red", "Median" = "green")) +
+  ggtitle("B") +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+# Joinning plots for figure 2 and exporting them as a inkscape and illustrator-friendly PDF. Legend_soruce is the legend with point's colour representing the source whereas legend_stats contain the mean and meadian.
+pdf(file = "Images/CumDegDis.pdf", useDingbats = FALSE, height = 7, width = 8)
+grid.arrange(CumDegDis, CumDegDisRegulatory, CumDegDisMetaboSignal, CumDegDisPPI, legendSource, legendStats, ncol = 2, nrow = 3, widths = c(4, 3), heights = c(3, 3, 1))
+dev.off()
+```
+
+
+### 1. **Scale-freeness**
+Several real world networks, in contrast to random ones, follow a power law degree distribution and thus are called scale-free. Such kind of networks inherits another properties, such as the acheeles heel property and the presence of hubs, therefore it is important to assess scale-freeness to see if the interactome may inherits such properties. In order to assess if our data follows such a degree distribution, the scaling parameter ($\alpha$) and the lower cutoff ($x_{min}$) are going to be calculated [@Clauset:2009iy]. Firstly, an accurate estimation of the $x_{min}$ is required to ensure the accuracy of the maximum likelihood estimator of the scaling parameter $\alpha$ [@Clauset:2009iy]. The method to be used selects the $x_{min}$ that minimises the Kolmogorov-Smirnov distance (K-S) between our data and the best-fit power-law distribution [@Gillespie:2015hb]:
+
+```{r powerlaw_1, message=FALSE, warning=FALSE}
+# Extracting the degree of interactomeGraph
+degInteractome <- igraph::degree(interactomeGraph,
+                         normalized = FALSE,
+                         v = V(interactomeGraph))
+
+# Creating the discrete power-law distribution object to be compared against the discrete poisson distribution  (dispois)
+interactomeGraphPower <- displ$new(degInteractome)
+
+# Estimating xmin with an upper cutoff of max(degree), to cope with all variation in the range of degree values
+interactomeGraphPower$setXmin(estimate_xmin(interactomeGraphPower, 
+                                           xmins = NULL, 
+                                           pars = NULL, 
+                                           xmax = max(igraph::degree(interactomeGraph,
+                                                                     normalized = FALSE)),
+                                           distance = "ks"))
+```
+
+The resulting value of $\alpha$ is `r interactomeGraphPower$getPars()` for an $x_{min}$ value of `r interactomeGraphPower$getXmin()`, meaning that the power law is valid for `r get_ntail(interactomeGraphPower, prop = FALSE, lower = FALSE)` nodes in the degree range range `r interactomeGraphPower$getXmin()`$<k<$ `r interactomeGraphPower$getXmin() + get_ntail(interactomeGraphPower, prop = FALSE, lower = FALSE)`. This result is critical as most power-law estimations are inspected visualy and counting for such distribution along all the dataset, which is not an accurate picture of what is the true distribution of the dataset in a specific range [@Clauset:2009iy]. Notwithstanding the relative short $k$ interval fitting a power law, to estimate the uncertainty in these power law parameters, the K-S is calculated from 100 simulations with bootstrapping of synthetic data sets following a power law distribution, with the same $\alpha$ and $x_{min}$ as our data set (*id est* once the K-S between the observed $P(k)_{HI}$ and the fitted power-law parameters is calculated, the same procedure is repeated n-simulations times but between fictional power-law, with the same parameter as the observed, and their corresponding power-law fit to a true power-law), to subsequently calculate the statistic significance (p-value) of the power-law interval [@Clauset:2009iy]. 
+
+```{r powerlaw_2, results="hide", message=FALSE, warning=FALSE}
+# To stablish if the power law distribution is plausible, a boostrapping hypothesis test is carried out
+bootsinteractomeGraphPower <- bootstrap_p(interactomeGraphPower, no_of_sims = 1000, threads = detectCores() - 1, seed = 0)
+
+# extracting the p-value
+bootsinteractomeGraphPower$p
+
+# Extracting the K-S of the observed
+bootsinteractomeGraphPower$gof
+```
+
+The p-value represents the fraction of comparisons where the K-S of synthetic power law data is greater than the K-S distance of the empirical data [@Clauset:2009iy]. Therefore, a $p_{value} = 0.50$ means that, in the 50 % of comparisons, the K-S of the observed data set was closer to a power-law distribution than the K-S of synthetic power law samples, thus, there is a probability of 5 (p-value) in 10 that our data set follows a power-law distribution in the aforementioned range. The decision rule stands that the power law is ruled out if $p_{value} \leq 0.1$, however, large $p_{value}$ does not necessarily means a power law fit, as @Clauset:2009iy explain, consequently, a comparison against a discrete Poisson distribution, which fits to random networks, is going to be performed employing the likelihood ratio of Vuong’s test:
+
+```{r powerlaw_3, warning=FALSE, message=FALSE}
+# The discrete Poisson distribution is fitted 
+interactomeGraphPoisson <- dispois$new(degInteractome)
+
+# Setting the same lower cutoff
+interactomeGraphPoisson$setXmin(interactomeGraphPower$getXmin())
+
+# Setting the parameter z of the Poisson distribution
+interactomeGraphPoisson$setPars(estimate_pars(interactomeGraphPoisson))
+
+```
+
+The likelihood ratio test is a method to compare the likelihood of the observed data ($P(k)_{HI}$) under two competing distributions; the higher the likelihood the better fit [@Clauset:2009iy]. One can also calculate the log of the ratio of likelihood, which is positive or negative depending on which distribution is better, or zero in the event of a tie [@Clauset:2009iy]. However, for that to hold, one must ensure that the observed sign is positive or negative enough that it could not plausibly be the result of a chance fluctuation, which is carry out employing the Vuong’s test to calculate the $\sigma$ (standar deviation) as a measure of fluctuation of the log-likelihood sign value. The null hypothesis of the Vuong’s test stands that both classes of distributions, power-law and poisson, are equally far from the true distribution [@Gillespie:2015hb], therefore a $p_{value} < 0.1$ meas that it is very unlikely that the log-likelihood sign obeys chance fluctuations and the sign is a reliable indicator of which model is the better fit to the data. On the contrary,a $p_{value} > 0.1$ the sign is not reliable and the test does not favor either model over the other. Consequently, it is expected that the Vuong’s test, rejects the Poissonian distribution, indicating that a non-random process is taking place, therefore, strengthening the power law as the distribution that best fits the data (note that a large number of distributions can be fitted, thus, the statement only concern the distributions contemplated in the comparison) in the specified range. for power-law the plot of the log-likelihood ratio of Vuong’s test goes towards $+ \infty$, and for lo-like distributions (*e.g.* exponential distribution) goes towards $- \infty$
+
+```{r vuong_plot, echo=FALSE, warning=FALSE, message=FALSE, fig.align="center", fig.cap="Figure 2. Power law distribution better fits the P(k) of the HI than the poisson distribution, indicating that there is a biological underlying process generating such distribution of the degree."}
+
+# Visualising the result of the Vuong’s test
+# Extracting the log-likelihood ratio (\mathcal{R}) to plot it in ggplot2
+plVSpois <- compare_distributions(interactomeGraphPower, interactomeGraphPoisson)$ratio
+names(plVSpois) <- c("k", "R")
+  
+# Adding the distribution from which the comparison against poisson is comapred
+plVSpois$Distribution <- "Power-law"
+
+plVSpoisPlot <- ggplot(data = plVSpois, aes(x = k, y = R)) + 
+  geom_point() +
+  labs(x = "Degree (k)", y = "Normalised Log-likelihood Ratio")
+
+# The log-likelihood value
+compare_distributions(interactomeGraphPower,interactomeGraphPoisson)$test_statistic
+
+# P-value for the log-likelihood sign
+compare_distributions(interactomeGraphPower, interactomeGraphPoisson)$p_two_sided
+
+# P-value to see if the first distribution is more closer to the P8K) than the second one
+compare_distributions(interactomeGraphPower, interactomeGraphPoisson)$p_one_sided
+```
+
+The sample average of the log-likelihood ratio of Vuong’s test, standarised by its $\sigma$ (standar deviation), is positive (`r compare_distributions(interactomeGraphPower, interactomeGraphPoisson)$test_statistic`), indicating that the power law [@Clauset:2009iy, pp. 19-21 and figure 5.1] compared against the Poisson, is the distribution which best fit $k$ in the range $55<k<362$. This is also shown in figure 2, where the log-likelihood ratio goes towards $+ \infty$, hence, rejecting the null hypothesis of the Vuong’s test. Inasmuch as the log-likelihood ratio is subjected to statistical fluctuation, it is essential to assess quantitatively whether its positive value is statistically relevant [@Clauset:2009iy]. For that purpose, the two sided $p_{value}$ = `r compare_distributions(interactomeGraphPower, interactomeGraphPoisson)$p_two_sided` points out that is very unlikely that such positive value of the log-likelihood ratio obeys a serendipitous value of the ratio's fluctuations, instead, indicating that, certainly, it is a reliable indicator that the $P(k)$ do not follows a Poisson distribution and that the power-law is plausible in the mentioned range.
+
+Now lets compare the observed degree distribution against the exponential distribution, as the HI present a bimodal (two local maximum) $P(k)$ inherited from regulatory interactions which follows an exponential instead of a power-law distribution in their  $P(k)$ [@Marbach:2016jx supplementary fig 6-8]:
+```{r vuong_plot, echo=FALSE, warning=FALSE, message=FALSE, fig.align="center", fig.cap=""}
+# Lets compare the exponential distrubution against the discrete poisson distribution
+# Creating the discrete exponential distribution object
+interactomeGraphExpo <- disexp$new(degInteractome)
+
+# Estimating xmin with an upper cutoff of max(degree), to cope with all variation in the range of degree values
+interactomeGraphExpo$setXmin(estimate_xmin(interactomeGraphExpo, 
+                                           xmins = NULL, 
+                                           pars = NULL, 
+                                           xmax = max(igraph::degree(interactomeGraph,
+                                                                     normalized = FALSE)),
+                                           distance = "ks"))
+
+# Creating the discrete Poisson distribution object 
+interactomeGraphPoisson2 <- dispois$new(degInteractome)
+
+# Setting the same xmin as interactomeGraphExpo
+interactomeGraphPoisson2$setXmin(interactomeGraphExpo$getXmin())
+
+# Estimating the parameter z of the Poisson distribution
+interactomeGraphPoisson2$setPars(estimate_pars(interactomeGraphPoisson2))
+
+# Visualising the result of the Vuong’s test
+# Extracting the log-likelihood ratio (\mathcal{R}) to plot it in ggplot2
+expVSpois <- compare_distributions(interactomeGraphPoisson2, interactomeGraphExpo)$ratio
+names(expVSpois) <- c("k", "R")
+  
+# Adding the distribution from which the comparison against poisson is comapred
+expVSpois$Distribution <- "Exponential"
+
+plVSexpPlot <- ggplot(data = expVSpois, aes(x = k, y = R)) + 
+  geom_point() +
+  labs(x = "Degree (k)", y = "Normalised Log-likelihood Ratio")
+
+# Extracting the sample average of the log-likelihood ratio of Vuong’s test
+compare_distributions(interactomeGraphPoisson2,
+                      interactomeGraphExpo)$test_statistic
+
+# Getting the two-sided-pvalue of the log-likelihood ratio
+compare_distributions(interactomeGraphPoisson2, interactomeGraphExpo)$p_two_sided
+
+# Order dependent p-value. H0: The fisrt distribtion is better than the second one:
+compare_distributions(interactomeGraphPoisson2, interactomeGraphExpo)$p_one_sided
+```
+
+```{r warning=FALSE, error=FALSE, fig.align="center", fig.cap="The x_min for Powe-law fitting is 2920, whit an alpha of 3.731383, explaining the min value in the plot. x_min for exponential distibution is 285 with a parameter of 0.0006224567"}
+# xmin and parameter value are retrieved by calling interactomeGraphPower and interactomeGraphExpo
+
+# Ploting the Vuong's test plots for power-law vs poisson and exponential vs poisson. However, it is puzzling to notice that the xmin of 
+pl_expoVSpoiss <- dplyr::bind_rows(expVSpois, plVSpois)
+pl_expoVSpoissPlot <- ggplot(data = pl_expoVSpoiss, aes(x = k, y = R, colour = Distribution)) + 
+  geom_point(alpha = 0.5, size = 3) +
+  labs(x = "Degree (k)", y = "Normalised Log-likelihood Ratio") +
+  theme(legend.position = "bottom")
+
+# Exporting the file
+ggsave(file = "Images/vuong_tests.pdf", plot = pl_expoVSpoissPlot, useDingbats = FALSE, width = 7, height = 7)
+```
+
+As seen in the plot which goes towards $- \infty$ with a significant negative value, the exponential distribution fits better the $P(k)_{HI}$ than the poisson distribution, indicating that the HI brain-specific here constructed is drawn from randomness. 
+
+```{r scale_free_plot, echo=FALSE, warning=FALSE, message=FALSE, fig.align="center", fig.cap = "Figure 3. Fitting the power-law line to the data"}
+# For visual interpretation :Fitting the exponential and the power-law distribution to the $P(k)_{HI}$ plot:
+# Setting the alpha parameter to the graph
+interactomeGraphPower$setPars(interactomeGraphPower$pars)
+
+# Plotting
+plot(interactomeGraphPower, 
+     col = "blue",
+     xlab = "log-k",
+     ylab = "log-P(k)")
+lines(interactomeGraphPower, col = "red")
+legend(x = "topright", "Power-law distribution", lty = c(1,1), lwd = c(2.5,2.5), col = "red", inset = 0.03) 
+
+```
+
+But make no mistake, it does not means that there are not hubs, on the contrary, as seen with the two local maximums, there are two types of hubs that can be easily differentiated by their clustering coeficcient level:
+
+### 1.1. **Intra and inter modular hubs**
+As [@Ferreira:2013ir; Han:2004eu] point, some biological networks do not follow a power-law and also present two types of hubs (intramodular and intermodular) that can be characterised by ploting $cl$ vs $k$. Evolution of such kind of networks is governed by preferential attachment of new nodes to high degre and high clustering coeffcient existing nodes (*id est* intramodular hubs) and no preferential attachment for high degree low transitivity nodes (intermodular hubs). it is believed that duplication of intermodular hubs leads to non-scale-free netwoks, such as the the interactome that follows best an exponential distribution. To check such hypothesis one can construct the same plot as the cited authors did:
+
+```{r warning=FALSE, error=FALSE, fig.align="center", fig.cap="figure 1. There are two typed of hubs: high cl, also termed intramodular, and relative low cl, also known as intramodular, Which are believed to emerge through duplication events thus making the regulatory program growth exponentially."}
+# Storing the degree per node
+clvsk <- base::as.data.frame(igraph::degree(interactomeGraph))
+
+# Storing the local transitivity per node
+clvsk$cl <- round(igraph::transitivity(interactomeGraph, vids = V(interactomeGraph), type = "local"), 2)
+
+# Setting the row names as ID column
+clvsk <- tibble::rownames_to_column(clvsk, "EG_ID")
+
+# Renaming the columns
+names(clvsk) <- c("EG_ID", "k", "cl")
+
+# Removing duplicates and NA
+clvsk <- unique(clvsk[complete.cases(clvsk), ])
+
+# Ploting transitivity vs degree
+clvskPlot <- ggplot2::ggplot(data = clvsk, aes(x = k, y = cl, color = k > 550)) + 
+  geom_point(alpha = 0.5) +
+  scale_x_continuous(trans = "log10") +
+  labs(x = "log10(k)", y = "cl") +
+  stat_ellipse(type = "t", level = 0.99) +
+  theme(legend.position = "bottom",
+        panel.grid.minor = element_blank())
+
+# Additional options: http://www.sthda.com/english/wiki/ggplot2-scatter-plots-quick-start-guide-r-software-and-data-visualization
+
+# Marginal density plot of clvsk (top panel)
+clvskDensity <- ggplot(data = clvsk, aes(x = k, color = k > 550)) + 
+  geom_density(aes(x = k, fill = k > 550), alpha = 0.5) + 
+  scale_x_continuous(trans = "log10") +
+  labs(x = "log10(k)", y = "Density") +
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.background = element_blank())
+
+# Joinning the plots and exporting the illustrator-inkscape friendly .odf
+pdf(file = "Images/intra_inter_hubs.pdf", useDingbats = FALSE, height = 7, width = 8)
+grid.arrange(clvskDensity, clvskPlot, ncol = 1, nrow = 2, widths = c(7), heights = c(1.5, 5.5))
+dev.off()
+```
+
+Inasmuch as regulatory interactions are overrepresented in the HI, only those regulatory interaction of the file brain_adult from [@Marbach:2016jx] are going to be used intead of the previous 33 files, thus reducing also the HI dimensionality at the expense of regulatory interactions number. This second interactome will be compared against the first one in their topological features (See table 1 of the thesis document).
+
+The top-10 hubs in each category woould support the fact that regulatory entities (TF, enhancers, promoters, intera alia) are the hubs in the network and thus are more prone to duplication events [@Li:2006gi]
+
+```{r topten, message=FALSE, warning=FALSE}
+# Retrieve the EG ID of the most connected node:
+V(interactomeGraph)[igraph::degree(interactomeGraph) == max(igraph::degree(interactomeGraph))]
+
+# Retrieve the EG ID of the top 10 intermodular hubs:
+interHubs <- as.character(V(interactomeGraph)[igraph::degree(interactomeGraph) > 12100])
+
+# Retrieve their names
+lapply(X = interHubs, FUN = function(i){mget(i, org.Hs.egGENENAME)})
+
+# Retrieve the EG ID of the top 10 intramodular hubs:
+intraHubs <- as.character(V(interactomeGraph)[igraph::degree(interactomeGraph) < 550 & igraph::degree(interactomeGraph) > 485])
+
+# Creating a data.frame with these 
+plop <- data.frame(interHubs, intraHubs)
+```
+
+
+2. **Average nearest neighbor degree (knn)** indicates the way in which nodes of a given degree tend to interact with each other, however, it only works with simple graphs (not multilayer ones), therefore it is required that the interactomeGraph gets rid off the multiedges.
+```{r knn, include=FALSE, message=FALSE}
+#To convert the multi layer or multiple graph to a weighted one, based upon the number of edges between a pair of vertices:
+interactomeGraphKNN <- interactomeGraph
+E(interactomeGraphKNN)$weight <- 1
+interactomeGraphKNNWeighted <- simplify(interactomeGraphKNN)
+
+E(interactomeGraphKNNWeighted)$weight
+
+interactomeGraphKNN <- knn(interactomeGraphKNNWeighted, vids = V(interactomeGraphKNNWeighted), weights = NULL)
+```
+
+```{r knn_plot, echo=FALSE, message=FALSE, fig.cap= "Figure 4. High-degree nodes tend to interact indiscriminately with high-degree and low-degree nodes", fig.align="center", warning=FALSE}
+plot(interactomeGraphKNN$knn, log = "xy", col = "goldenrod", xlab = c("Log-Degree"), ylab = c("Log Average Neighbor Degree"))
+```
+
+3. **Small-world property**
+A network exhibit the small-world effect [@Watts:1998db] if, despite having a high clustering coefficient, exhibit a short path lenght. Such property, just as the scale-freeness, have been linked to real world effect and explain the expedite information flow troughout the network, indispensable to carry out the cellular process with efficiency/efficacy/speed.
+```{r samll_worldness, warning=FALSE, error=FALSE}
+# Page 57-58 from Kolaczyk:2014cu
+average.path.length(interactomeGraphLCC)
+diameter(interactomeGraphLCC)
+transitivity(interactomeGraphLCC)
+
+# Page 776 from Kolaczyk:2014cu shows how to create the plot for small-worldness
+```
+
+4. **Transitivity**
+5. **Average path length**
+6. **Cliques as a measure of network cohesiveness**
+cliques are complete subgraphs and hence are subsets of vertices that are fully cohesive, in the sense that all vertices within the subset are connected by edges kolaczyc page 52-53. Taking into account that, as real-world networks are sparse, it is very rare to find large cliques (e.g yeast proteome have 23)
+table(sapply(cliques(karate), length))
+table(sapply(maximal.cliques(karate), length))
+
+   # Interactome validation
+
+In order to asses the validity of the topological features, and more broadly, of the human interactome brain/neurone-specific, such features are going to be compared against the random expectation of simulated networks. The premise is that the different the observed features in the interactome from the random ones, the more evidence supporting a biological underlying process generating them.
+
+## **0.** Transitivity
+The first topological property to be assessed is the transitivity or Clustering Coefficient ($cl$) [@Kolaczyk:2014cu, p. 56]. $$cl(G) = 3\tau_{\triangle}(G) / \tau_{3}(G)$$ where $\tau_{\triangle}(G)$ is the number of triangles in the graph $G$ and $\tau_{3}$ the number of connected triplets of the form $\wedge$. Transitivity inform about the frequency with which the triplets form triangles in the network an is a measure of how closseness is one vertex to another, thus providing information about clustering of nodes.
+```{r transitivity_validation, message=FALSE, warning=FALSE}
+# Observed clustering coefficient
+igraph::transitivity(interactomeGraph)
+
+# Degree Preserving Randomization of the simulated clustering coefficient
+interactomeTrans <- InteractomeSamplingTransitivity(interactomeGraph, 1000, detectCores() - 1)
+```
+*Note that the number of simulations do not have a support. How to choose the number of simulations?*
+Recall that the null hypothesis for the Z-socre is: $$H_0 = cl_{simulated}(interactome) = cl_{observed}(interactome)$$ Therefore, with a confidence level of 99%, a $Z-score > +2.58$ or $Z-score < -2.58$ means that the observed clustering coefficient is very far away, in standard deviations, from the random value, obeying instead a biological processes [@Kolaczyk:2014cu, p. 94].[Resource for z-scores and p-values](http://pro.arcgis.com/en/pro-app/tool-reference/spatial-statistics/what-is-a-z-score-what-is-a-p-value.htm).
+Due to the massiveness of the HI, the transitivity computation of the simulated networks is too expensive computationally, therefore, following the same procedure as the plot from sample, a random sample without replacement will be performed in the HI to perform on this sample the transitivity validation. Inasmuch as the HI contains diferent proportion of interactions and nodes by source, a stratified random sample will be performed. Almost half of the HI vertices will be used, correspondng to 388 PPI (12.93% of vertices in the HI are ppi (2151*100)/16628. And the 12.93% of 5000 is 646.5. However, note that, inasmuch as a node might be present in the 3 sources, the summed proportions of the 3 sources is always greater than the HI number of vertices, which only conserved the unique nodes), 1405.761 metabosignal and 4891.749 regulatory
+
+```{r}
+# Reproducible results
+set.seed(0) 
+
+# Randomly sampling 3000 nodes from the interactomeGraph. Note that sometimes ppi nodes are not displayed due to their low representation compared with metabosignal and regulatory. To obtain ppi nodes, iteration of the sampling is required. 66 metabosignal, 12 ppi, 2922 reg
+samplePPI <- sample(1:vcount(ppiGraph), 647)
+sampleMS <- sample(1:vcount(metabosignalGraph), 1406)
+sampleReg <- sample(1:vcount(regulatoryGraph), 4892)
+sampleInteractome <- c(samplePPI, sampleMS, sampleReg)
+
+# Subsetting the interactomeGraph by the randomly selected nodes while preservinf the edges. Anothe option is: http://stackoverflow.com/questions/37351411/color-by-degree-in-r-using-ggnet2
+sampleInteractomeGraph2 <- igraph::induced.subgraph(interactomeGraph,
+                                           V(interactomeGraph)[sampleInteractome],
+                                           impl = "auto")
+
+# Finding the number of components (sum of lower row) and their vertex number (upper row).
+table(sapply(decompose.graph(sampleInteractomeGraph2), vcount))
+
+# Extracting only the LCC
+sampleInteractomeGraph <- decompose.graph(sampleInteractomeGraph)[[1]]
+
+# Simulating 1000
+trans.simulated <- mclapply(1:1000,
+                              function(i){
+                                round(igraph::transitivity(igraph::rewire(igraph::sample_gnp(n = igraph::vcount(sampleInteractomeGraph2), p = 1/igraph::vcount(sampleInteractomeGraph2), directed = FALSE, loops = FALSE), with = keeping_degseq(niter = igraph::vcount(sampleInteractomeGraph2) * 10))), digits = 5)}, mc.cores = detectCores() - 1)  
+  
+# Coercing the list class to numeric class, and this in turn into a data frame for ggplot2 compatibility
+trans.simulated <- as.data.frame(as.numeric(unlist(trans.simulated)))
+names(trans.simulated) <- "Transitivity"
+
+# Calculating the Z-score = ((X - μ.random) / σ.random), to see how many σ a given data set is from its μ, between the observed transitivity and the average transitivity from random samples. Where mean(trans.simulated) is the simulated average global clustering coefficient and sd(trans.simulated) its standard deviation
+z.score.trans <- round((round(igraph::transitivity(sampleInteractomeGraph2), digits = 3) - mean(trans.simulated$Transitivity))/sd(trans.simulated$Transitivity), 3)
+
+igraph::transitivity(sampleInteractomeGraph2)
+
+# Plot. To avoid confusions when unifying the plots with the RBD ones, the object is renamed
+trans.simulatedHI <- trans.simulated
+HItrans.plot <- ggplot(data = trans.simulatedHI, aes(x = Transitivity)) +
+    geom_histogram(binwidth = 0.0008, alpha = .5) +
+    geom_vline(aes(xintercept = mean(Transitivity, na.rm = TRUE)), linetype = "dashed", size = 0.7,color = "red") +
+    ylab("P(cl)") +
+    xlab("") +
+  ggtitle("A") +
+  geom_segment(aes(x = 0.048, y = 200, xend = 0.048, yend = 20),
+                  arrow = arrow(length = unit(0.3, "cm")), colour = "#00BFC4", alpha = 0.8, size = 0.8) +  
+  annotate("text", x = 0.045, y = 280,label = "Observed\ncl = 0.048",size = 4)
+```
+
+
+## **1.** Average path length
+Paths, trials without repeting vertices, are measures of reachability and information flow. Pertaining real-world networks, paths are particularly short in length, despite their usually large size, [@Watts:1998db; @Albert:1999kf] compared against random networks.
+
+```{r APL_validation, message=FALSE, warning=FALSE}
+# Observed Average path length
+average.path.length(interactomeGraph)
+
+# Simulated Average path length
+interactomeAPL <- InteractomeSamplingAPL(interactomeGraph, 1000, detectCores() - 1)
+```
+
+Just as transitivity, the computation cost for the HI average path length validation against random network is too high. Therefore the same sample as the transitivity will be used.
+
+```{r}
+# Simulating 1000
+APL.simulated <- mclapply(1:1000,
+                              function(i){
+                                round(igraph::average.path.length(igraph::rewire(igraph::sample_gnp(n = igraph::vcount(sampleInteractomeGraph2), p = 1/igraph::vcount(sampleInteractomeGraph2), directed = FALSE, loops = FALSE), with = keeping_degseq(niter = igraph::vcount(sampleInteractomeGraph2) * 10))), digits = 5)}, mc.cores = detectCores() - 1)  
+  
+# Coercing the list class to numeric class, and this in turn into a data frame for ggplot2 compatibility
+APL.simulated <- as.data.frame(as.numeric(unlist(APL.simulated)))
+names(APL.simulated) <- "APL"
+
+# Calculating the Z-score = ((X - μ.random) / σ.random), to see how many σ a given data set is from its μ, between the observed transitivity and the average transitivity from random samples. Where mean(trans.simulated) is the simulated average global clustering coefficient and sd(trans.simulated) its standard deviation
+z.score.APL <- round((round(igraph::average.path.length(sampleInteractomeGraph2), digits = 3) - mean(APL.simulated$APL))/sd(APL.simulated$APL), 3)
+igraph::average.path.length(sampleInteractomeGraph2)
+
+# Plot. To avoid confusions when unifying the plots with the RBD ones, the object is renamed
+APL.simulatedHI <- APL.simulated
+
+HIAPL.plot <- ggplot(data = APL.simulatedHI, aes(x = APL)) +
+    geom_histogram(binwidth = 0.5, alpha = .5) +
+    geom_vline(aes(xintercept = mean(APL, na.rm = TRUE)), linetype = "dashed", size = 0.7,color = "red") +
+    ylab("P(< d >)") +
+    xlab("")  +
+  ggtitle("B") +
+  geom_segment(aes(x = 2.29, y = 18, xend = 2.29, yend = 2),
+                  arrow = arrow(length = unit(0.3, "cm")), colour = "#00BFC4", alpha = 0.8, size = 0.8) +
+  annotate("text", x = 5, y = 23,label = "Observed\n<d> = 2.29",size = 4)
+```
+
+## **2.** ERGM
+To further analyse the biological validity of the interactome, it will be fitted against the dyadic-independent model, where the likelihood of a tie doesn’t depend on any other (*a.k.a.* Erd\"{o}s-Rényi or Bernulli model), from the Exponential-family of Random Graph models (ERGM), expecting that the observed distribution of some network metrices (degree, geodesic length and edge-wise shared partners (*i.e.*, the number of neighbors shared by a pair of vertices defining an edge)) differ from that of the exponential random model [@Kolaczyk:2014cu, p. 87]. ERGM employs a logistic regression for parameter estimation of the form $$P(Y_{ij} | Y_{i′j′}, \theta) = logistic \sum _{h = 1} ^{k} \theta _h \delta _h ^{ij} (Y)$$ Where $Y_{ij}$ is a binary random variable indicating if there is an edge between a pair of vertices ${i,j}$, $Y_{i′j′}$ is binary random variable for the other vertices, $\theta$ is the coefficient of the statisthic $\delta$ [@Kolaczyk:2014cu, p. 86]. The chosen model only contains an edge term, *it es*, for each pair ${i,j}$, we assume that $Y_{ij}$ is independent of $Y_{i′,j′}$ , for any ${i′,j′} \neq {i,j}$ [@Kolaczyk:2014cu, p. 86].
+
+```{r ergm_1, message=FALSE, warning=FALSE}
+# Require the ergm package from the statnet suit
+# Retrieving the igraph information to convert it to a "network" class. Note that using the internetwork package one can reduce this step into a single line using as.network(igraph)
+A <- get.adjacency(interactomeGraph)  # Adjacency matrix
+A.v.attrs <- get.data.frame(interactomeGraph, 
+                            what = "vertices")   # Vertex attribute
+
+# Creating the "network" class object recognisable by ergm as part of statnet
+interactomeGraph.net <- network::as.network(as.matrix(A), 
+                                           directed = FALSE,
+                                           vertex.attrnames = A.v.attrs)
+interactomeGraph.net
+
+# To ensure reproducibility in pseudo-random number generator
+set.seed(0)  # Only execute if previously you have not executed it!
+
+# Fitting the random model, which in this case is the bernoulli or Erdos-Renyi model.
+interactomeGraph.model <- ergm(interactomeGraph.net ~ edges, control = control.ergm(parallel = detectCores() - 1, parallel.type = "PSOCK"))
+
+# Extracting the result of fitting the random model to the interactome
+summary(interactomeGraph.model)
+
+# The log-odds of any ocurring edge is (see) 
+exp(-4.7096658)/(1 + exp(-4.7096658))  # = 0.008927372. 
+
+# Or alternatively
+plogis(coef(interactomeGraph.model)[['edges']])  # = 0.008927372
+
+```
+
+The probability to draw an edge in the interactome randomly is very low (0.008927372), in other words, it is very unlikely that the edges of the interactome are drawn from a Bernulli or Erd\"os-Rényi model. Such observation is further supported by a log-odd of `r exp(-4.7096658)`, meaning that the model does not affect the odds of drawing an edge between two nodes.
+
+Similarly, one can observe the Akaike Information Criterion (AIC): 2065327    and the Bayesian Information Criterion (BIC): 2065344 which has very high values. Both criterion measures how well the choosen model explains the original dataset (edges in the interactome) taking care of overfitting by penalising for the number of parameters choosen (AIC penalises softer than BIC). In both cases the smaller, the better fit the model the observed dataset. 
+Once the random model have been fitted to the interactome, is time to assess the goodness-of-fit of such relation, by comparing the observed network statistics against the random ones, expecting those to be diffferent and thus representing an overall poor fitting. 
+
+```{r goodness_of_fit_degree, message=FALSE, warning=FALSE} 
+# Check for ~ degree + shared partner + geodesic distance + edge at the same time. This is computationally expensive, therefore it is better to perform the gof metric by metric
+# interactomeGraph.model.gof <- gof(interactomeGraph.model)
+
+# Check for degree only
+interactomeGraph.model.gof.deg <- gof(interactomeGraph.model ~ degree,
+                                 control = control.gof.formula(nsim = 100, parallel = detectCores() - 1, parallel.type = "PSOCK"))
+```
+
+```{r goodness_of_fit_degree_plot, echo=FALSE, message=FALSE, fig.cap= "Figure 5. P(k) is not product of random expectation", fig.align="center", warning=FALSE}
+plot(interactomeGraph.model.gof.deg,
+     xlim = c(0,30), )
+
+plot(interactomeGraph.model.gof.deg, plotlogodds = TRUE, xlim = c(0,30))
+```
+
+It is evident that the overall poor fit of the random degree to the interactome's degree distribution and it is more notable for low degree values. 
+
+```{r goodness_of_fit_edges, message=FALSE, warning=FALSE} 
+# Check for edges only
+interactomeGraph.model.gof.edge <- gof(interactomeGraph.model,
+                                       GOF = ~model,
+                                       control = control.gof.ergm(nsim = 100, parallel = detectCores() - 1, parallel.type = "PSOCK"))
+interactomeGraph.model.gof.edge
+```
+
+In this case the null hypothesis ($H_0$) is $$d_{simulated}(Bernulli) = d_{observed}(interactome)$$ It is, the interactome has the number of edges per vetex, representing its topology, governed by a random process. Hence, a p-value of 0.4 means that the interactome and the Bernulli networks are simmilar. *Why does this occuer? Is the H0 correct? is the interpretation correct? what is the * Note that the number of observations are the number of edges in the network.
+
+```{r goodness_of_fit_geodesic_plot, echo=FALSE, message=FALSE, fig.cap= "Figure 6. Geodesic distance is not product of random expectation", fig.align="center", warning=FALSE}
+# # Checks for geodesic distance only
+interactomeGraph.model.gof.dis <- gof(interactomeGraph.model ~ distance,
+                                 control = control.gof.ergm(nsim = 100, parallel = detectCores() - 1, parallel.type = "PSOCK"))
+plot(interactomeGraph.model.gof.dis, plotlogodds = TRUE)
+plot(interactomeGraph.model.gof.dis)
+```
+
+As seen in the log-odds plot, the overall fit of the random geodesic distance to that obeserved in the interactome is quite poor, suggesting that such difference is due to the biological process that gave the interactome its topological property.
+
+***
+# References

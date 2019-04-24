@@ -240,298 +240,35 @@ DIAMOnDValidation <- function(seed, DIAMOnD, GO, NET, NET_type, NET_names, alphA
 }
 ```
 
-       ## Packages
+## Packages
 ```{r library, message=FALSE, warning=FALSE}
-# To easily convert row.names to a first column
-library("tibble")
-
-# Praefinitum network manipulation package
-library("igraph")
-
-# For network exchange
-library("intergraph")
-
-# To employ the ggplot2 power with igraph and network object classes
-library("ggnetwork")
-library("ggnet")
-
-# To arrange multiple plots
-library("gridExtra")
-
-# To assess the power law distribution
-library("poweRlaw")
-
-# To paralellise the code
-library("parallel")
-library("foreach")
-
-# To exponential random graph model simulations
-library("ergm")
-
-# To enhance the file importing process
-library("readr")
-
-# To general file manipulation
-library("dplyr")
+Packages <- c("ggplot2", "dplyr", "org.Hs.eg.db", "readr", "KEGGREST", "KEGGgraph", "parallel", "foreach", "org.Hs.eg.db", "doParallel", "igraph", "tictoc", "intergraph", "ggnetwork", "ggnet", "gridExtra", "poweRlaw", "ergm"); lapply(Packages, library, character.only = TRUE); rm(Packages)
 ```
 ***
 
 # Interactome description
-## Files importing
-Importing the files created in the HIassemble.RMD file to create the brain-specific human interactome, from now on interactome, that will be used to predict the RBD disease module.
+## Files import
 ```{r file_importing, message=FALSE, warning=FAlSE}
-# Reading the files
-# Interactome
-interactome_ready <- unique(read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/Files_ready/interactome_ready.txt", 
-                          "\t",
-                          escape_double = FALSE,
-                          col_types = cols(EG_node1 = col_number(),
-                                           EG_node2 = col_number()),
-                          trim_ws = TRUE))
+interactome_ready <- readRDS("Data/Individual/interactome_ready.rds")
+
 interactomeGraph <- graph_from_data_frame(interactome_ready, directed = FALSE)
-
-# Metabolic-Signaling
-metabosignal_ready <- unique(read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/Files_ready/metabosignal_ready.txt", "\t", escape_double = FALSE, trim_ws = TRUE))
-metabosignalGraph <- graph_from_data_frame(metabosignal_ready,
-                                          directed = FALSE)
-
-# Regulatory
-regulatory_ready <- read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/Files_ready/regulatory_ready.txt", "\t", escape_double = FALSE, trim_ws = TRUE)
-regulatoryGraph <- graph_from_data_frame(regulatory_ready,directed = FALSE)
-
-# Protein-Prtein Interactions
-PPI_ready <- read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/Files_ready/ppi_ready.txt", "\t", escape_double = FALSE, trim_ws = TRUE)
-ppiGraph <- graph_from_data_frame(PPI_ready,directed = FALSE)
+is.connected(interactomeGraph)
 ```
 
-The interactome is an igraph object class, with `r vcount(interactomeGraph)` vertices and `r ecount(interactomeGraph)` edges. It is a multilayer graph as it has `r sum(is.multiple(interactomeGraph, eids = E(interactomeGraph)))` multiedges and`r sum(is.loop(interactomeGraph, eids = E(interactomeGraph)))` loops, the former represent edges supported by multiple sources (*i.e* PPI, regulatory or metabosignal). In order to reduce multidimensonality, the interactome is going to be transformed into a simple graph, where   an edge weigth is proportional to the number of sources supporting such interaction:
+The interactome is a connected igraph network, with `r vcount(interactomeGraph)` vertices and `r ecount(interactomeGraph)` edges. It is a multilayer graph as it has `r sum(is.multiple(interactomeGraph, eids = E(interactomeGraph)))` multiedges and`r sum(is.loop(interactomeGraph, eids = E(interactomeGraph)))` loops, the former represent edges supported by multiple sources (*i.e* PPI, regulatory or metabosignal). In order to reduce multidimensonality, the interactome is going to be transformed into a simple graph, where an edge weigth is proportional to the number of sources supporting such interaction:
     
 ```{r simple_interactome, warning=FALSE, message=FALSE}
 # Counting multiple edges and assigning it to a new edge attribute, "Weight"
 E(interactomeGraph)$Weight <- count.multiple(interactomeGraph)
 
 # Simplifying the interactome
-interactomeGraph <- simplify(interactomeGraph, remove.loops = TRUE, remove.multiple = FALSE) 
+interactomeGraph <- simplify(interactomeGraph, remove.loops = TRUE, remove.multiple = TRUE) 
 
 # Checking
 is.simple(interactomeGraph)
 ```
 
-The number of vertices is `r vcount(interactomeGraph)` connected by `r ecount(interactomeGraph)` edges. Despite its massiveness, just as many real-world network, it displays a relative small diameter: `r diameter(interactomeGraph)`.
-
-```{r message=FALSE, warning=FALSE, include=FALSE, eval=FALSE}
-summary(interactomeGraph)  # General information
-
-V(interactomeGraph)  # Number of vertices
-
-E(interactomeGraph)  # Number of edges 
-
-class(interactomeGraph)  # Object class
-
-is.simple(interactomeGraph)  # Either simple or multi layer graph
-
-# If it is multilayer, then:
-# To look for loops
-sum(is.loop(interactomeGraph, eids = E(interactomeGraph)))
-
-# To look for multiple edges
-sum(is.multiple(interactomeGraph, eids = E(interactomeGraph)))
-
-# To count multiple edges as a contingency table
-table(count.multiple(interactomeGraph, eids = E(interactomeGraph)))
-
-# To remove multiple edges but keep multiplicity of the graph
-# E(g)$weight <- count.multiple(g)
-# g <- simplify(g)
-# any(is.multiple(g))
-# E(g)$weight
-
-# To see if there are isolated subgraphs.
-is.connected(interactomeGraph)
-
-# Longest distance in the graph
-diameter(interactomeGraph)
-```
-
-## Proportion of edges per source
-It is useful to know the individual contribution of each source to the overall interactome interactions, this can be done in a couple of useful ways: venn diagrams, to see complementarity, and categorical bar charts of proportions, as seen in the plot 1.
-
-Regulatory interaction cope with the vast majority of interactions, despite regulatory_ready.txt does not has duplicated interactions. The large number of interactions may obey to several causes or, which is more plausible, a combination of them:
- * The presence of very promiscuous TF and, in a smaller extent, enhancer and/or promoters. Thus indeed reflecting the complexity of the system.
- * CAGE generates false positives?
- * The number of tissues contemplated for regulatory interactions is too large (33) compared with that for PPI and metabosignal (5). And taking into account that each tissue *per se* has many connections, summing them up created the overepresentation observed.
- * when converting the directed network to an undirected one, the scale-freeness is lost?
- * Inasmuch as regulatory interactions from marbach are inferred, may obey to false positives of prediction that when compared with the experimentally validates and manually curated ppi and metabosignal interactions, are very very large
-
-In order to reduce the overepresentation of regulatory interactions, only those pertaining to the adult brain are going to be used: 
-
-```{r interactome2, message=FALSE, warning=FAlSE}
-# Importing the file
-interactome_ready_2 <- read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/Files_ready/interactome_ready_2.txt", "\t", escape_double = FALSE, col_types = cols(EG_node1 = col_character(), EG_node2 = col_character()), trim_ws = TRUE)
-
-# Creating the igraph object
-interactomeGraph <- igraph::graph_from_data_frame(interactome_ready_2, directed = FALSE)
-
-# Counting multiple edges and assigning it to a new edge attribute, "Weight"
-E(interactomeGraph)$Weight <- igraph::count.multiple(interactomeGraph)
-
-# Removing loops
-interactomeGraph <- igraph::simplify(interactomeGraph, remove.loops = TRUE, remove.multiple = FALSE)
-
-# Extracting topological properties of interest
-vcount(interactomeGraph)
-ecount(interactomeGraph)
-mean(degree(interactomeGraph, normalized = FALSE))
-median(degree(interactomeGraph, normalized = FALSE))
-max(degree(interactomeGraph, normalized = FALSE))
-min(degree(interactomeGraph, normalized = FALSE))
-transitivity(interactomeGraph)
-average.path.length(interactomeGraph)
-diameter(interactomeGraph)
-```
-
-Lets create the plot comparing the proportion of edges per source in both interactomes
-
-```{r edgeproportion_source, message=FALSE, warning=FALSE, fig.align="center", fig.cap="Suplementary figure 1. Proportion of edges per source in the interactome with all regulatory interactions (A) and with whole brain only regulatory interactions (B) included. Despite the regulatory overepresentation persit when employing only whole-brain regulatory interactions, the dimensionality of the interactome reduces by a factor of 2.5."}
-# Proportion of interactions per source in the HI 1. , colour="black"
-int1barproportion <- ggplot(interactome_ready ,aes(x = "", fill = Source)) + 
-  geom_bar(position = "fill", width = 0.3) +
-  scale_fill_manual(values = c("tomato", "gold", "gray50")) +
-  labs(x = "", y = "Proportion of edges") +
-  ggtitle("A") 
-
-# Proportion of interactions per source in the HI 2
-int2barproportion <- ggplot(interactome_ready_2 ,aes(x = "", fill = Source)) + 
-  geom_bar(position = "fill", width = 0.3) +
-  scale_fill_manual(values = c("tomato", "gold", "gray50")) +
-  labs(x = "", y = "Proportion of edges") +
-  ggtitle("B")
-
-# Joinning plots for suplementary figure 1 and exporting them as a inkscape and illustrator-friendly PDF
-pdf(file = "Images/porportion_per_source.pdf", useDingbats = FALSE, height = 4, width = 8)
-grid.arrange(int1barproportion, int2barproportion, ncol = 2, nrow = 1)
-dev.off()
-```
-
-Even reducing the number of regulatory interactions, they still are the most prominent of the sources, apporting the 97.4 % of interactions to the interactome, whereas metabolic-signaling and PPI aport the 2.2% and 0.4 %, respectively. Despite it was not posible to reduce the overepresentation of regulatory interactions, the dimensionalyty of the network reduces by a facor of 2.5 (3077707/1234593. Edges in both interactomes). Therefore, further analyses will be computed using the interactome_2 instead of the one with full regulatory interactions.
-
-## Plot from sample
-Plotting the interactome, due to its massiveness, would end up in an inteligible hairball. Therefore, for visualisation purposses, a random sample (not necesarily a representative sample) is drawn from the interactome and plotted:
-
-```{r plot_sample_1, message=FALSE, error=FALSE, fig.align="center", fig.cap=""}
-# Reproducible results
-set.seed(0) 
-
-# Randomly sampling 300 nodes from the interactomeGraph. nOte that sometimes ppi nodes are not displayed due to their low representation compared with metabosignal and regulatory. To obtain ppi nodes, iteration of the sampling is required.
-sampleInteractome <- sample(1:vcount(interactomeGraph),
-                            300)
-
-# Subsetting the interactomeGraph by the randomly selected nodes while preservinf the edges. Anothe option is: http://stackoverflow.com/questions/37351411/color-by-degree-in-r-using-ggnet2
-sampleInteractomeGraph <- igraph::induced.subgraph(interactomeGraph,
-                                           V(interactomeGraph)[sampleInteractome],
-                                           impl = "auto")
-
-# Finding the number of components and their vertex number
-table(sapply(decompose.graph(sampleInteractomeGraph),
-             vcount))
-
-# Extracting only the LCC
-sampleInteractomeGraph <- decompose.graph(sampleInteractomeGraph)[[1]]
-
-# Creating the dataframe from the randomly sampled LCC from the interactome. Note that one can use the function asNetwork() from intergraph package to easy transfer igraph <=> network classes
-sampleInteractomeDF <- igraph::as_data_frame(sampleInteractomeGraph)
-
-# Creating the network class object recognisable by ggnet2
-sampleInterac <- network::network(sampleInteractomeDF[, 1:2])
-
-# Adding the Degree, Source and color attributes
-sampleInterac %v% "Degree" <- sna::degree(sampleInterac)
-sampleInterac %v% "Source" <- sampleInteractomeDF$Source
-```
-``` {r plot_sample_2, message=FALSE, error=FALSE}
-# Plotting with ggnet2
-sampleInteracPlot <- ggnet2(sampleInterac,
-       mode = "fruchtermanreingold",
-       node.size = "Degree",
-       size.cut = 40,
-       size.max = 200,
-       size.min = 1,
-       node.color = "Source",
-       alpha = 0.8,
-       edge.alpha = 0.7,
-       edge.size = 0.1,
-       edge.color = "grey",
-       palette = c(regulatory = "gray50", metabosignal = "tomato", ppi = "gold")) +
-  geom_point(aes(color = color), color = "white") +
-  geom_point(aes(color = color), alpha = 0.5)
-
-# Set palette = c(regulatory = "#619CFF", metabosignal = "#F8766D", ppi = "#00BA38")) for default ggplot2 first 3 colors
-
-# Exporting the network as a inkscape and illustrator-friendly PDF
-ggsave(file = "Images/netplot_sample.pdf", plot = sampleInteracPlot, useDingbats = FALSE, width = 8, height = 7)
-```
-
-```{r include=FALSE, eval=FALSE}
-# Plotting using ggnetwork
-#V(sampleInteractomeGraph)$size <- degree(sampleInteractomeGraph)
-# g <- unique(ggnetwork(sampleInteractomeGraph, layout = "kamadakawai"))
-# g <- g[complete.cases(g), ]
-# 
-# ggplot(ggnetwork(sampleInteractomeGraph, layout = "kamadakawai"), aes(x = x, y = y, xend = xend, yend = yend),
-#        na.rm = TRUE) +
-#   geom_edges(aes(size = Weight), curvature = 0.1,
-#              color = "grey50",
-#              alpha = 0.25) +
-#   geom_nodes(aes(color = Source), size = sna::degree(sampleInteractomeGraph)) +
-#   theme_blank() +
-#   theme(legend.position = "right")
-# #
-# # # #   ploting using Polnet (2016) guidelines
-# l <- layout_with_fr(sampleInteractomeGraph)
-# colrs <- c("gray50", "tomato", "gold")
-# V(sampleInteractomeGraph)$color <- colrs[V(sampleInteractomeGraph)$Source]
-# 
-# V(sampleInteractomeGraph)$size <- degree(sampleInteractomeGraph)
-# E(sampleInteractomeGraph)$width <- E(sampleInteractomeGraph)$Weight
-# plot(sampleInteractomeGraph, layout = l, vertex.label = NA, edge.curved = 0.3, vertex.size = 5)
-# 
-# 
-# Retrieving the adjacency for heatmap ploting
-# sampleInteractomeAdjacency <- as_adjacency_matrix(sampleInteractomeGraph,
-#                                                   type = "upper",
-#                                                   names = TRUE,
-#                                                   attr = "Weight",
-#                                                   sparse=FALSE)
-
-# Constructing the heatmap 
-#palf <- colorRampPalette(c("gold", "dark orange"))
-# heatmap(sampleInteractomeAdjacency,
-#         Rowv = NA,
-#         Colv = NA,
-#         col = palf(100),
-#         scale="none",
-#         margins=c(10,10))
-```
-
-```{r}
-# Simple code to get the legend in points relative to the source type to be included in the figure 2
-sampleInteracPlotLEGEND <- ggnet2(sampleInterac,
-       mode = "fruchtermanreingold",
-       size.max = 200,
-       size.min = 1,
-       node.color = "Source",
-       palette = c(regulatory = "gray50", metabosignal = "tomato", ppi = "gold")) +
-  theme(legend.position = "bottom",
-        legend.direction = "horizontal")
-
-# Extract the legend
-legendSource <- get_legend(sampleInteracPlotLEGEND)
-
-# Cleaning the environment
-rm(sampleInteracPlotLEGEND)
-```
-
-The network map reflect the overall overepresentation of the regulatory interactions and the presence of highly connected nodes, which represent promiscuous transcription factors.
+Despite its massiveness, just as many real-world networks, the HI displays a relative small diameter: `r diameter(interactomeGraph)`.
 
 ##  Centrallity measures 
 ###0. **Degree ($k$)** 
@@ -571,55 +308,51 @@ CumDegDis <- ggplot() +
                show.legend = T) +
   scale_x_continuous(trans = "log") +
   scale_y_continuous(trans = "log") +
-  labs(x = "Degree (k)", y = "P(k)") +
+  labs(x = " log(k)", y = "log(P(k))") +
   scale_color_manual(name = "Statistics", values = c("Mean" = "red", "Median" = "green")) +
-  ggtitle("A") +
   theme(legend.position = "bottom",
-        legend.direction = "horizontal")
-
-# To get the raw distribution, remove the "cumulative = TRUE" option from degree.distribution(). 
-
-# To unify the legend when creating the figure 2
-legendStats <- get_legend(CumDegDis)
-CumDegDis <- CumDegDis + theme(legend.position = "none",
-                               panel.grid.major = element_blank(),
-                               panel.grid.minor = element_blank())
-```
-```{r include=FALSE, eval=FALSE}
-# For a more sinthetic geom_vline() call in the cumulative distribution: http://stackoverflow.com/questions/34186081/vline-legends-not-showing-on-geom-histogram-type-plot 
-# for plotting degree distributions with ggplot2: https://blog.ouseful.info/2012/01/27/experimenting-with-igraph-and-a-hint-towards-ways-of-measuring-engagement/
-# And https://rpubs.com/lgadar/power-law
-# 
-# Plotting the degree distribution with base::plot instead of ggplot2
-# Degree distribution plot
-plot(degree.distribution(interactomeGraph, 
-                         cumulative = TRUE),
-     xlab = "Degree (k)",
-     ylab = "P(k)",
-     col = "blue")
-
-# Adding the mean line
-abline(v = mean(degree(interactomeGraph,
-                       normalized = FALSE)),
-       col = "red")
-
-# Adding the median line
-abline(v = median(degree(interactomeGraph,
-                         normalized = FALSE)),
-       col = "green")
-
-# Adding the legend
-legend(x = "topright",
-       c("Mean", "Median"),
-       lty = c(1, 1),
-       lwd = c(2.5, 2.5),
-       col = c("red", "green"),
-       inset = 0.03) 
+        legend.direction = "horizontal",
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        axis.line = element_line(size = 0.5, linetype = "solid",
+                                   colour = "black"))
+ggsave("Figures/HI_CumDegDis.pdf", CumDegDis)
 ```
 
 To see which source of interactions is generating the bimodal distribution, $P(k)$ per source are going to be ploted:
 
 ```{r}
+# $P(k)_{HI}$
+CumDegDis <- ggplot() +
+  geom_point(aes(c(1:length(degree.distribution(interactomeGraph,
+                                                cumulative = TRUE)
+                            )),
+                 degree.distribution(interactomeGraph,
+                                     cumulative = TRUE)),
+             colour = 'black',
+             size = 1) +
+  geom_vline(aes(xintercept = mean(igraph::degree(interactomeGraph,
+                                          normalized = FALSE)),
+                 color = "Mean"),
+               linetype = "dashed",
+               size = 1,
+               show.legend = F) +
+    geom_vline(aes(xintercept = median(igraph::degree(interactomeGraph,
+                                              normalized = FALSE)),
+                 color = "Median"),
+               linetype = "dashed",
+               size = 1,
+               show.legend = F) +
+  scale_x_continuous(trans = "log") +
+  scale_y_continuous(trans = "log") +
+  labs(x = element_blank(), y = "log(P(k))") +
+  scale_color_manual(name = "Statistics", values = c("Mean" = "red", "Median" = "green")) +
+  ggtitle("A") +
+  theme(legend.position = NULL,
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        axis.line = element_line(size = 0.5, linetype = "solid", colour = "black"))
+
 # $P(k)_{metabosignal}$
 CumDegDisMetaboSignal <- ggplot() +
   geom_point(aes(c(1:length(degree.distribution(metabosignalGraph,
@@ -643,11 +376,13 @@ CumDegDisMetaboSignal <- ggplot() +
                show.legend = FALSE) +
   scale_x_continuous(trans = "log") +
   scale_y_continuous(trans = "log") +
-  labs(x = "Degree (k)", y = "P(k)") +
+  labs(x = "log(k)", y = "log(P(k))") +
   scale_color_manual(name = "Statistics", values = c("Mean" = "red", "Median" = "green")) +
   ggtitle("C") +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
+  theme(legend.position = NULL,
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        axis.line = element_line(size = 0.5, linetype = "solid", colour = "black"))
 
 # $P(k)_{PPI}$
 CumDegDisPPI <- ggplot() +
@@ -672,13 +407,13 @@ CumDegDisPPI <- ggplot() +
                show.legend = FALSE) +
   scale_x_continuous(trans = "log") +
   scale_y_continuous(trans = "log") +
-  labs(x = "Degree (k)", y = "P(k)") +
+  labs(x = "log(k)", y = element_blank()) +
   scale_color_manual(name = "Statistics", values = c("Mean" = "red", "Median" = "green")) +
   ggtitle("D") +
-  theme(axis.title.y = element_blank(),
-        axis.text.y = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
+  theme(legend.position = NULL,
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        axis.line = element_line(size = 0.5, linetype = "solid", colour = "black"))
 
 # $P(k)_{regulatory}$
 CumDegDisRegulatory <- ggplot() +
@@ -703,20 +438,20 @@ CumDegDisRegulatory <- ggplot() +
                show.legend = FALSE) +
   scale_x_continuous(trans = "log") +
   scale_y_continuous(trans = "log") +
-  labs(x = "Degree (k)", y = "P(k)") +
+  labs(x = element_blank(), y = element_blank()) +
   scale_color_manual(name = "Statistics", values = c("Mean" = "red", "Median" = "green")) +
   ggtitle("B") +
-  theme(axis.title.y = element_blank(),
-        axis.text.y = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
+  theme(legend.position = NULL,
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        axis.line = element_line(size = 0.5, linetype = "solid",
+                                   colour = "black"))
 
 # Joinning plots for figure 2 and exporting them as a inkscape and illustrator-friendly PDF. Legend_soruce is the legend with point's colour representing the source whereas legend_stats contain the mean and meadian.
-pdf(file = "Images/CumDegDis.pdf", useDingbats = FALSE, height = 7, width = 8)
-grid.arrange(CumDegDis, CumDegDisRegulatory, CumDegDisMetaboSignal, CumDegDisPPI, legendSource, legendStats, ncol = 2, nrow = 3, widths = c(4, 3), heights = c(3, 3, 1))
+pdf(file = "Figures/CumDegDis_all.pdf", useDingbats = FALSE, height = 7, width = 8)
+grid.arrange(CumDegDis, CumDegDisRegulatory, CumDegDisMetaboSignal, CumDegDisPPI, ncol = 2, nrow = 2)
 dev.off()
 ```
-
 
 ### 1. **Scale-freeness**
 Several real world networks, in contrast to random ones, follow a power law degree distribution and thus are called scale-free. Such kind of networks inherits another properties, such as the acheeles heel property and the presence of hubs, therefore it is important to assess scale-freeness to see if the interactome may inherits such properties. In order to assess if our data follows such a degree distribution, the scaling parameter ($\alpha$) and the lower cutoff ($x_{min}$) are going to be calculated [@Clauset:2009iy]. Firstly, an accurate estimation of the $x_{min}$ is required to ensure the accuracy of the maximum likelihood estimator of the scaling parameter $\alpha$ [@Clauset:2009iy]. The method to be used selects the $x_{min}$ that minimises the Kolmogorov-Smirnov distance (K-S) between our data and the best-fit power-law distribution [@Gillespie:2015hb]:
@@ -743,7 +478,7 @@ The resulting value of $\alpha$ is `r interactomeGraphPower$getPars()` for an $x
 
 ```{r powerlaw_2, results="hide", message=FALSE, warning=FALSE}
 # To stablish if the power law distribution is plausible, a boostrapping hypothesis test is carried out
-bootsinteractomeGraphPower <- bootstrap_p(interactomeGraphPower, no_of_sims = 1000, threads = detectCores() - 1, seed = 0)
+tic();bootsinteractomeGraphPower <- bootstrap_p(interactomeGraphPower, no_of_sims = 1000, threads = detectCores() - 1, seed = 0);toc() # 101.094 sec elapsed
 
 # extracting the p-value
 bootsinteractomeGraphPower$p
@@ -788,7 +523,7 @@ compare_distributions(interactomeGraphPower,interactomeGraphPoisson)$test_statis
 # P-value for the log-likelihood sign
 compare_distributions(interactomeGraphPower, interactomeGraphPoisson)$p_two_sided
 
-# P-value to see if the first distribution is more closer to the P8K) than the second one
+# P-value to see if the first distribution is more closer to the P(K) than the second one
 compare_distributions(interactomeGraphPower, interactomeGraphPoisson)$p_one_sided
 ```
 
@@ -871,81 +606,7 @@ legend(x = "topright", "Power-law distribution", lty = c(1,1), lwd = c(2.5,2.5),
 
 ```
 
-But make no mistake, it does not means that there are not hubs, on the contrary, as seen with the two local maximums, there are two types of hubs that can be easily differentiated by their clustering coeficcient level:
-
-### 1.1. **Intra and inter modular hubs**
-As [@Ferreira:2013ir; Han:2004eu] point, some biological networks do not follow a power-law and also present two types of hubs (intramodular and intermodular) that can be characterised by ploting $cl$ vs $k$. Evolution of such kind of networks is governed by preferential attachment of new nodes to high degre and high clustering coeffcient existing nodes (*id est* intramodular hubs) and no preferential attachment for high degree low transitivity nodes (intermodular hubs). it is believed that duplication of intermodular hubs leads to non-scale-free netwoks, such as the the interactome that follows best an exponential distribution. To check such hypothesis one can construct the same plot as the cited authors did:
-
-```{r warning=FALSE, error=FALSE, fig.align="center", fig.cap="figure 1. There are two typed of hubs: high cl, also termed intramodular, and relative low cl, also known as intramodular, Which are believed to emerge through duplication events thus making the regulatory program growth exponentially."}
-# Storing the degree per node
-clvsk <- base::as.data.frame(igraph::degree(interactomeGraph))
-
-# Storing the local transitivity per node
-clvsk$cl <- round(igraph::transitivity(interactomeGraph, vids = V(interactomeGraph), type = "local"), 2)
-
-# Setting the row names as ID column
-clvsk <- tibble::rownames_to_column(clvsk, "EG_ID")
-
-# Renaming the columns
-names(clvsk) <- c("EG_ID", "k", "cl")
-
-# Removing duplicates and NA
-clvsk <- unique(clvsk[complete.cases(clvsk), ])
-
-# Ploting transitivity vs degree
-clvskPlot <- ggplot2::ggplot(data = clvsk, aes(x = k, y = cl, color = k > 550)) + 
-  geom_point(alpha = 0.5) +
-  scale_x_continuous(trans = "log10") +
-  labs(x = "log10(k)", y = "cl") +
-  stat_ellipse(type = "t", level = 0.99) +
-  theme(legend.position = "bottom",
-        panel.grid.minor = element_blank())
-
-# Additional options: http://www.sthda.com/english/wiki/ggplot2-scatter-plots-quick-start-guide-r-software-and-data-visualization
-
-# Marginal density plot of clvsk (top panel)
-clvskDensity <- ggplot(data = clvsk, aes(x = k, color = k > 550)) + 
-  geom_density(aes(x = k, fill = k > 550), alpha = 0.5) + 
-  scale_x_continuous(trans = "log10") +
-  labs(x = "log10(k)", y = "Density") +
-  theme(legend.position = "none",
-        axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.ticks.y = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.background = element_blank())
-
-# Joinning the plots and exporting the illustrator-inkscape friendly .odf
-pdf(file = "Images/intra_inter_hubs.pdf", useDingbats = FALSE, height = 7, width = 8)
-grid.arrange(clvskDensity, clvskPlot, ncol = 1, nrow = 2, widths = c(7), heights = c(1.5, 5.5))
-dev.off()
-```
-
-Inasmuch as regulatory interactions are overrepresented in the HI, only those regulatory interaction of the file brain_adult from [@Marbach:2016jx] are going to be used intead of the previous 33 files, thus reducing also the HI dimensionality at the expense of regulatory interactions number. This second interactome will be compared against the first one in their topological features (See table 1 of the thesis document).
-
-The top-10 hubs in each category woould support the fact that regulatory entities (TF, enhancers, promoters, intera alia) are the hubs in the network and thus are more prone to duplication events [@Li:2006gi]
-
-```{r topten, message=FALSE, warning=FALSE}
-# Retrieve the EG ID of the most connected node:
-V(interactomeGraph)[igraph::degree(interactomeGraph) == max(igraph::degree(interactomeGraph))]
-
-# Retrieve the EG ID of the top 10 intermodular hubs:
-interHubs <- as.character(V(interactomeGraph)[igraph::degree(interactomeGraph) > 12100])
-
-# Retrieve their names
-lapply(X = interHubs, FUN = function(i){mget(i, org.Hs.egGENENAME)})
-
-# Retrieve the EG ID of the top 10 intramodular hubs:
-intraHubs <- as.character(V(interactomeGraph)[igraph::degree(interactomeGraph) < 550 & igraph::degree(interactomeGraph) > 485])
-
-# Creating a data.frame with these 
-plop <- data.frame(interHubs, intraHubs)
-```
-
-
-2. **Average nearest neighbor degree (knn)** indicates the way in which nodes of a given degree tend to interact with each other, however, it only works with simple graphs (not multilayer ones), therefore it is required that the interactomeGraph gets rid off the multiedges.
+### 2. **Average nearest neighbor degree (knn)** indicates the way in which nodes of a given degree tend to interact with each other, however, it only works with simple graphs (not multilayer ones), therefore it is required that the interactomeGraph gets rid off the multiedges.
 ```{r knn, include=FALSE, message=FALSE}
 #To convert the multi layer or multiple graph to a weighted one, based upon the number of edges between a pair of vertices:
 interactomeGraphKNN <- interactomeGraph
@@ -961,25 +622,23 @@ interactomeGraphKNN <- knn(interactomeGraphKNNWeighted, vids = V(interactomeGrap
 plot(interactomeGraphKNN$knn, log = "xy", col = "goldenrod", xlab = c("Log-Degree"), ylab = c("Log Average Neighbor Degree"))
 ```
 
-3. **Small-world property**
+### 3. **Small-world property**
 A network exhibit the small-world effect [@Watts:1998db] if, despite having a high clustering coefficient, exhibit a short path lenght. Such property, just as the scale-freeness, have been linked to real world effect and explain the expedite information flow troughout the network, indispensable to carry out the cellular process with efficiency/efficacy/speed.
 ```{r samll_worldness, warning=FALSE, error=FALSE}
 # Page 57-58 from Kolaczyk:2014cu
-average.path.length(interactomeGraphLCC)
-diameter(interactomeGraphLCC)
-transitivity(interactomeGraphLCC)
+average.path.length(interactomeGraph) #4.3562
+diameter(interactomeGraph)
+transitivity(interactomeGraph) #0.064346
 
-# Page 776 from Kolaczyk:2014cu shows how to create the plot for small-worldness
+# Page 74 from Kolaczyk:2014cu shows how to create the plot for small-worldness
 ```
 
-4. **Transitivity**
-5. **Average path length**
-6. **Cliques as a measure of network cohesiveness**
+### **Cliques as a measure of network cohesiveness**
 cliques are complete subgraphs and hence are subsets of vertices that are fully cohesive, in the sense that all vertices within the subset are connected by edges kolaczyc page 52-53. Taking into account that, as real-world networks are sparse, it is very rare to find large cliques (e.g yeast proteome have 23)
 table(sapply(cliques(karate), length))
 table(sapply(maximal.cliques(karate), length))
 
-   # Interactome validation
+# Interactome validation
 
 In order to asses the validity of the topological features, and more broadly, of the human interactome brain/neurone-specific, such features are going to be compared against the random expectation of simulated networks. The premise is that the different the observed features in the interactome from the random ones, the more evidence supporting a biological underlying process generating them.
 

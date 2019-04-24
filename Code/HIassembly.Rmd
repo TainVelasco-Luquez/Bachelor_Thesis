@@ -2,13 +2,15 @@
 title: "HIassembly"
 author: "Tain Velasco-Luquez"
 date: "08/02/2017"
-output: 
+output:
   html_document:
-    toc: True
-    toc_float: TRUE
-bibliography: /Users/imacoftain/Dropbox/newmin.bib
-editor_options: 
+    toc: yes
+    toc_float: yes
+  pdf_document:
+    toc: yes
+editor_options:
   chunk_output_type: console
+bibliography: /Users/imacoftain/Dropbox/newmin.bib
 ---
 # Copyright statement
 
@@ -33,35 +35,23 @@ The main objective of this script is to generate the human interactome (HI) incl
 
 ## Packages
 ```{r library, message=FALSE, warning=FALSE}
-# Praefinitum network manipulation package
-library("igraph")
-
-# To paralellise the code
-library("parallel")
-
-# To enhance the file importing process
-library("readr")
-
-# To handle KEGG data
-library("KEGGgraph")
-library("MetaboSignal")
-library("KEGGREST")
-
-# To general file manipulation
-library("dplyr")
-
-# ID conversion
-library("org.Hs.eg.db")
-
-# Tissue specific data
-# library("hpar")  # Inasmuch as it interfears with MetaboSignal this must be loaded in the PPI importing section
+Packages <- c("ggplot2", "dplyr", "org.Hs.eg.db", "readr", "KEGGREST", "KEGGgraph", "parallel", "org.Hs.eg.db", "doParallel", "igraph", "tictoc"); lapply(Packages, library, character.only = TRUE); rm(Packages)
 ```
 
 # Datasets importing
+Complete raw data processing is described below, however, the fast way to load the final processed files is to run the following code chunk and jump to the "interactome assembly" section.
+```{r}
+load("Data/HIassembly.RData")
+```
+
+Which contains 3 data frames: PPI, regulatory and metabosignal. Each of them in turn has 3 columns: first two columns are the source and target nodes ENTREZID and the third column is the source of the interaction according to the name of the file.
+
 ## 0. Metabolic and Signaling interactions
 [KEGG pathway](http://www.kegg.jp/kegg/docs/keggapi.html) database was used for metabolic and signaling data trough its (application programming interface) API for file retrieval. Data was downloaded on 03/05/2017. Two given nodes (*i.e.* metabolites, genes encoding enzymes denoted as metabolic and signaling-genes)  are connected if they are involved in the same pathway. In order to consider the inextricably intertwine between metabolic and signaling networks, they are going to be merge as a single one, instead of construct a separated network for each one [@RodriguezMartinez:2016cf]. 
 
 ```{r MetaboSignal, message=FALSE, warning=FALSE}
+#library("MetaboSignal")
+
 # Importing the file from the KEGG DB
 KEGGpathID <- read.table(file = "http://rest.kegg.jp/link/hsa/pathway",
            header = FALSE,
@@ -111,16 +101,6 @@ MetaboSignal <- MetaboSignal_matrix(metabo_paths = metaboPath,
                                                "hypothalamus"),
                                     expand_genes = TRUE)
 
-# Creating the general metabosignal network 2 dimensional matrix of directected edges (from left to right)
-# MetaboSignalUnfilter <- MetaboSignal_matrix(metabo_paths = metaboPath,
-#                                             signaling_paths = signalPath,
-#                                             expand_genes = TRUE)
-
-# Nodes not expressed in the tissues
-# neglectedNodes <- MS_ChangeNames(setdiff(as.vector(MetaboSignalUnfilter),
-#                                          as.vector(MetaboSignal)),
-#                                  "hsa")
-
 # Converting to igraph
 metabosignalGraph <- graph_from_data_frame(MetaboSignal)
 
@@ -148,14 +128,11 @@ MetaboSignal$Source <- "metabosignal"
 names(MetaboSignal) <- c("EG_node1",
                          "EG_node2",
                          "Source")
-```
-
-Now that it is done lets export the file
-```{r MetaboSignal_1, message=FALSE, warning=FALSE}
-file.create("Data/Files_ready/metabosignal_ready.txt")
 MetaboSignal <- unique(MetaboSignal)
+
+# Export the file
 write.table(MetaboSignal,
-            file = "Data/Files_ready/metabosignal_ready.txt",
+            file = "Data/Individual/metabosignal_ready.txt",
             append = FALSE,
             quote = FALSE,
             sep = "\t",
@@ -177,281 +154,37 @@ Number of physical interactions among proteins:`r ecount(metabosignalGraph)`
 Diameter: `r diameter(metabosignalGraph)`
 
 ## 1. Regulatory interactions
-[Regulatory](nature.com/nmeth/journal/v13/n4/full/nmeth.3799.html) data from [@Marbach:2016jx].
-It contains three kinds of curated high quality predicted interactions based on the CAGE technology: 1. Transcription Facors (TF) binds to enhancers, 2. TF binds to genes and 3. enhancers binds to target genes. In total 33 files pertaining only adult tissue and cell line specific networks relative to the brain and its cells, respectively, were included. There were three exceptions though, optic_nerve.txt, neurons_astrocyte_-_cerebellum.txt, astrocyte_-_cerebral_cortex.txt because these files possibly contains fetal or juvenile interactions.
+Regulatory interactions come from [RegNetwork](http://www.regnetworkweb.org/), a databse for five types of regulatory interactions for human and mouse. RegNetwork enables using interactions supported by wet lab experiemnts and with a high confidence. Data was downloaded on 18/03/2019. The download options were:
 
-```{bash cleaning_regu_1, eval=FALSE, include=FALSE}
-# Changing the path
-cd /Volumes/Taveluz_1T/Universidad/11\ Semestre/Thesis/Thesis_R/Data/FANTOM5_individual_networks/394_individual_networks
-
-# Moving only those naming adult tissues to the Included/ directory
-  524  find . \( -iname "*olfactory*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  531  find . \( -iname "*cerebellum*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  532  find . \( -iname "*substantia*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  533  find . \( -iname "*spinal*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  534  find . \( -iname "*medulla*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  535  find . \( -iname "*coeruleus*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  536  find . \( -iname "*caudate*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  537  find . \( -iname "*thalamus*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  538  find . \( -iname "*pallidus*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  539  find . \( -iname "*amygdala*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  540  find . \( -iname "*hippocampus*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  541  find . \( -iname "*parietal*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  542  find . \( -iname "*gyrus*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  543  find . \( -iname "*occipital*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  544  find . \( -iname "*meninges*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  545  find . \( -iname "*brain*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  546  find . \( -iname "*callosum*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  547  find . \( -iname "*diencephalon*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  548  find . \( -iname "*lobe*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  549  find . \( -iname "*insula*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  550  find . \( -iname "*nucleus*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  551  find . \( -iname "*accumbens*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  552  find . \( -iname "*lobe*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  553  find . \( -iname "*pons*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  554  find . \( -iname "*putamen*" -a -iname "*adult*" \) -type f -exec mv {} Included/ \;
-  555  find . \( -iname "*optic*" -a -iname "*nerve*" \) -type f -exec mv {} Included/ \;
-  556  find . \( -iname "*neuron*" \) -type f -exec mv {} Included/ \;
-  557  find . \( -iname "*astrocyte*" \) -type f -exec mv {} Included/ \;
-       mv lung_right_lower_lobe_adult.txt ../
-
-# Counting the number of files in a directory
-  find . -name "*.gz*" | wc -l
-
-# It is no complete. Command to change all .csv files in a directory to .txt or any other extension
-  find -iname “*.csv” -exec mv {} \;
-  
-# Merge all the .csv files into 1
-  cat *.csv > merged.csv
-```
-
-```{sql cleaning_regu_2, eval=FALSE, include=FALSE}
-/* This file i located in  /Volumes/Taveluz_1T/Universidad/11\ Semestre/Thesis/Thesis_R/Data/FANTOM5_individual_networks/394_individual_networks/Included/regulatory.sql */
--- This script aims to unify the regulatory networks .txt files from Marbach et al. (2016).
-
-------------------------
--- Setting the DB
-SHOW DATABASES;
---CREATE DATABASE regulatory;
-USE regulatory;
-SHOW TABLES;
-
-CREATE TABLE regulatory (
-    TF VARCHAR(30),
-    Gene VARCHAR(30),
-    Strength DOUBLE
-);
-LOAD DATA LOCAL INFILE '/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Analyses/Data/FANTOM5_individual_networks/394_individual_networks/Included/merged.csv' 
-INTO TABLE regulatory;
-DESCRIBE regulatory;
-SELECT 
-    *
-FROM
-    regulatory
-LIMIT 10;
-
--- To get rid of the Strengh column which is not necessary for the interactome
-ALTER TABLE regulatory DROP COLUMN Strength;  -- Drop the column
-SELECT 
-    *
-FROM
-    regulatory
-LIMIT 10;
-SELECT 
-    COUNT(*)
-FROM
-    regulatory;  -- = 2933155 number of interactions
-    
-------------------------
--- Looking for duplicates
-CREATE TABLE duplicates SELECT TF, Gene, COUNT(*) AS NumDup FROM
-    regulatory
-GROUP BY TF , Gene;  -- Counting the number of times a given interaction appears
-SELECT 
-    *
-FROM
-    dup_reg 
-LIMIT 50;  -- First interactions appear only one time
-SELECT 
-    *
-FROM
-    (SELECT 
-        *
-    FROM
-        duplicates
-    ORDER BY NumDup DESC
-    LIMIT 50) sub
-ORDER BY NumDup ASC;  -- Last interactions appear only one time
--- Apparently, there are no duplicates as all interactions have a count = 1. For further look at duplicates:
-SELECT TF, Gene, COUNT(*) AS NumDup FROM
-    regulatory
-GROUP BY TF , Gene
-HAVING NumDup > 1;  -- Selecting only the duplicates interaction
--- In as much as the selection is empty, one can conclude that there are not duplicate interactions. For even further inspection of duplicates, unique values are retrieved:
-SELECT 
-    COUNT(*)
-FROM
-    (SELECT DISTINCT
-        TF, Gene
-    FROM
-        regulatory) AS count_distinct;  -- There are 2933155 unique interactions which is the same count as the original
--- The same result was find employing the terminal and the following commands under the regulatory table (i.e. without the Strenght column):
---  mysql -u root -p regulatory -e "select * from regulatory" -B > regulatory_test.tsv
---  wc -l regulatory_test.tsv
---  uniq regulatory_test.tsv | wc -l
-
-------------------
--- Therefore one can conclude that there is no duplicates entries in the file.
-------------------
-
-------------------
--- If it is required, dupicate entries can be removed by running the following commands
-ALTER TABLE regulatory ADD id INT NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST;SELECT 
-    *
-FROM
-    regulatory
-LIMIT 50;
-SELECT 
-    *
-FROM
-    (SELECT 
-        *
-    FROM
-        regulatory
-    ORDER BY id DESC
-    LIMIT 50) sub
-ORDER BY id ASC;  -- Visualise last 50 entries trhough a sub query
-SET innodb_lock_wait_timeout = 120;  -- To avoid get the error code 1205 regarding lock wait time exceeded. The default is 50
-SET SQL_SAFE_UPDATES = 0;DELETE FROM regulatory 
-WHERE
-    id NOT IN (SELECT 
-        minid
-    FROM
-        (SELECT 
-            MIN(id) AS minid
-        FROM
-            regulatory
-        GROUP BY TF , Gene) AS reg_new);
-SELECT 
-    COUNT(*)
-FROM
-    regulatory;
-SELECT 
-    TF, Gene
-FROM
-    regulatory
-GROUP BY TF , Gene
-HAVING COUNT(*) > 1;SELECT 
-    *
-FROM
-    regulatory
-LIMIT 50;
-ALTER TABLE regulatory DROP COLUMN id;
-```
-
-```{bash cleaning_regu_3, eval=FALSE, include=FALSE}
-# Export the regulatory table from the regulatory schema into a .tsv file:
-mysql -u root -p regulatory -e "select * from regulatory" -B > regulatory.tsv
-
-# Look for duplicate interactions:
-wc -l regulatory.tsv  # Number of lines = 2933156 including the row column_names
-uniq regulatory_test.tsv | wc -l  # Number of lines = 2933156 = No duplicates
-
-# Export the regulatory table from the regulatory schema into a .csv file:
-mysql -u root -p regulatory -e "select * from regulatory" -B | sed "s/'/\'/;s/\t/\",\"/g;s/^/\"/;s/$/\"/;s/\n//g" > regulatory.csv
-
-# To create a file with the names of ALL (including non-network such as ./, ../, .sql, .txt) files in the directory
-ls > included_files.txt
-
-# After curating the file for only those network files really included, one can count the number of files included.
-wc -l included_files.txt
-
-# To convert .txt to .csv in an OS X machine
-cat input.tsv | tr "\\t" "," > output.csv  # Option 1
-cat input.txt | sed 's/ /_/g' | sed 's/\t/,/g' > output.csv  # Option 2
-```
+![RegNetwork](Figures/RegNetwork.png)
 
 ```{r regulatory, message=FALSE, warning=FALSE}
-# Importing the interactions
-regulatory <- read.table(file = "/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/FANTOM5_individual_networks/394_individual_networks/Included/regulatory.tsv",
-           header = TRUE,
-           sep = "\t")
+library("hpar")
+RegNet <- read_csv("Data/Individual/export_Mon_Mar_18_13_56_38_UTC_2019.csv")
+dim(RegNet)
 
-# Inasmuch as levels in regulatory$TF are not the same as in regulatory$Gene, they dont have to be, joinning the overal levels between them one is required to find more mapped aliases to entrez ids. this can be checked by running
-# sum(levels(regulatory$Gene) != levels(regulatory$TF))
-levels(regulatory$TF) <- dplyr::union(levels(regulatory$TF),
-                                      levels(regulatory$Gene))
-levels(regulatory$Gene) <- dplyr::union(levels(regulatory$TF),
-                                        levels(regulatory$Gene))
+# Lets filter the tissue specific interactions
+data("rnaGeneTissue")
+rnaGeneTissue <- filter(rnaGeneTissue, Sample == "cerebral cortex")
+RegNet_tissue_specific <- semi_join(RegNet, rnaGeneTissue, c("regulator_symbol" = "Gene.name"))
+RegNet_tissue_specific <- semi_join(RegNet_tissue_specific, rnaGeneTissue, c("target_symbol" = "Gene.name"))
+dim(RegNet_tissue_specific) # 9038    7
+RegNet_tissue_specific <- RegNet_tissue_specific[, c(2, 4)]
+names(RegNet_tissue_specific) <- c("EG_node1", "EG_node2")
+RegNet_tissue_specific$Source <- "regulatory"
 
-# Creating the list of entrez ids. Note that in columns you can select whatever number of columns from columns(org.Hs.eg.db), including another ids.
-regulatoryTF <- as.character(regulatory$TF)
-regulatoryTF <- AnnotationDbi::select(org.Hs.eg.db,
-                                      keys = regulatoryTF,
-                                      columns = "ENTREZID",
-                                      keytype = "ALIAS")
-regulatoryGene <- as.character(regulatory$Gene)
-regulatoryGene <- AnnotationDbi::select(org.Hs.eg.db,
-                                        keys = regulatoryGene,
-                                        columns = "ENTREZID",
-                                        keytype = "ALIAS")
+# To avoid errors when mergin the files, it is better to treat ENTREZIDs as character instead of numeric
+RegNet_tissue_specific[,1] <- as.character(RegNet_tissue_specific[,1])
+RegNet_tissue_specific[,2] <- as.character(RegNet_tissue_specific[,2])
 
-# Combining the two list of entrez id into a single one
-Alias2Entrez <- unique(dplyr::bind_rows(regulatoryTF,
-                                        regulatoryGene))
-
-# Mapping the observed gene aliases onto entrez IDs
-regulatory <- dplyr::left_join(regulatory,
-                               Alias2Entrez,
-                               by = c("TF" = "ALIAS"),
-                               suffix = c("TF",
-                                          "Gene"))
-regulatory <- dplyr::left_join(regulatory,
-                               Alias2Entrez,
-                               by = c("Gene" = "ALIAS"),
-                               suffix = c("TF",
-                                          "Gene"))
-
-# Optional for Mapping the observed gene aliases into entrez IDs
-# require("pathview")
-# regulatory <- id2eg(ids = as.character(regulatory$TF), category = "SYMBOL", org = "hsa", pkg.name = "org.Hs.eg.db")
-
-# However it has NA when an observed alias is not mapped onto the entrez id, by the inherent behaviour of AnnotationDbi::select and many:many mapping
-sum(is.na(regulatory$ENTREZIDTF))
-sum(is.na(regulatory$ENTREZIDGene))
-
-# If the columns entrezTF and entrezGene have a NA, such row will be deleted
-regulatory <- unique(regulatory[complete.cases(regulatory), c("ENTREZIDTF",
-                                                       "ENTREZIDGene")])
-names(regulatory) <- c("EG_node1",
-                       "EG_node2")
-
-# Adding the source
-regulatory$Source <- "regulatory"
-
-# Converting to factor
-regulatory$EG_node1 <- as.factor(regulatory$EG_node1)
-regulatory$EG_node2 <- as.factor(regulatory$EG_node2)
-
-# Exporting the file
-file.create("Data/Files_ready/regulatory_ready.txt")
-regulatory <- unique(regulatory)
-write.table(regulatory, file = "Data/Files_ready/regulatory_ready.txt",
-            append = FALSE,
-            quote = FALSE,
-            sep = "\t",
-            row.names = FALSE,
-            col.names = TRUE,
-            qmethod = c("escape",
-                        "double"))
+# Saving the file
+write.table(RegNet_tissue_specific, "Data/Individual/regulatory_ready.txt", sep = "\t", col.names = T, row.names = F, quote = F)
 
 # Creating the graph
-reGraph <- graph_from_data_frame(regulatory,
-                                 directed = F)
+reGraph <- igraph::graph_from_data_frame(RegNet_tissue_specific, directed = F)
 
 # Cleaning the environment
-rm(Alias2Entrez, regulatoryTF, regulatoryGene)
-
+rm(rnaGeneTissue, RegNet, RegNet_tissue_specific)
 ```
 
 ### 1.0 Summary
@@ -461,153 +194,81 @@ Number of physical interactions among proteins:`r ecount(reGraph)`
 
 Diameter: `r diameter(reGraph)`
 
-```{r not_included_4, message=FALSE, include=FALSE, eval=FALSE}
-# ### 1.1 Kinase-substrate interactions
-# [PhosphoSitePlus](http://www.phosphosite.org/homeAction.action) BioPAX data in OWL format was downloaded on 18/04/2017. Such data includes only manually curated high-confidence and experimentally derived kinase-substrate interactions.
-# 
-# ## 3. Protein complexes
-# [CORUM](http://mips.helmholtz-muenchen.de/corum/#download) data was downloaded on 02/05/2017 in .txt format.
-# # Importing the interactions
-# kinsubs <- system.file("extdata",
-#                       "/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/PhosphositePlus/Kinase_substrates.owl",
-#                        package = "paxtoolsr")
-# # Importing the file
-# coreComplexes <- read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/coreComplexes.txt",
-#                             "\t",
-#                             escape_double = FALSE,
-#                             trim_ws = TRUE)
-# 
-# # Setting the class to data frame
-# coreComplexes <- as.data.frame(coreComplexes)
-# 
-# # Filtering only human complexes
-# coreComplexes <- subset(coreComplexes, Organism %in% "Human")
-# 
-# ### 3.0 Summary
-# Number of proteins: `r vcount(kingraph)`
-# Number of physical interactions among proteins:`r ecount(kingraph)`
-# Diameter: `r diameter(kingraph)`
-# ***
-```
-```{r not_included_5, message=FALSE, include=FALSE, eval=FALSE}
-# The detailed list of files included is available in /Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/FANTOM5_individual_networks/394_individual_networks/Included/included_files.txt
-# 
-# The majority of regulatory networks is highly biased towards TF-target, enhancer-promoter and RNA-target interactions, completely disregarding other types of regulatory interactions involving insulators, other types of RNA, besides mi and si (e.g. long-non-codingRNAs).
-# 
-# There are two main ways to construct regulatory networks depending on the kind of model used to stored the data. The most common type of regulatory data (*i.e.* where TF binds to DNA) is the one stored in the form of position matrices (*e.g.* Position Weight Matrices, Position Frequency Matrices or Position Information Matrices), where biological motifs (*i.e.* they can be DNA, Protein or RNA, inter alia), representing the specificity of the TF, are stored in the form of frequency or probability per each base or aa to be recognised by a TF, assuming independence among bases or aa (*i.e*each base contributes independently to the recognition by a TF). There are several tecnologies to generate these matrices, and several databases to store them. However, such approach tries to have one single motif or logo per TF, assuming that each transcription factor is able to interact with the genes that have such logo, thus, omiting non-specific interactions, low-affinity interactions and multiple logos recognition. To create the network, these logos are mapped onto the genome to identify the genes whose promotor region matches with the logo, and finally, creating a link between the TF and the matched genes \citep{Liu:2015hd}. The second model are k-mer sequences (strings of less than 10 nucleotides) where each sequence 
-# 
-# Regulatory interactions data, where transcription factors bind to DNA sequences,  will be used from \citet{Jolma:2013fh} which includes JASPAR and UniPROBE data. Up to date interactions will be downloaded from \href{http://jaspar.genereg.net}{JASPAR}, filtered by human content only, \href{http://the_brain.bwh.harvard.edu/uniprobe/index.php}{UniPROBE} and from \href{http://hocomoco.autosome.ru}{HOMOCOCO} databases. The generation of tissue specificity will be done by performing a filtering with the gene expression subnetwork described in the previous source. % https://www.ncbi.nlm.nih.gov/pubmed/24238150 for a workflow to generate tissue-specific regulatory networks without using GTEx data but instead employing sequence conservation and tissue-specific epigenetic (DNase I hypersensitivity) information.
-```
-
-
 ## 2. Binary protein-protein physical interactions 
-[Proteome from APID](http://cicblade.dep.usal.es:8080/APID/init.action), derived from high-throughput (unbiased) and low-troughput (typically biased) tecnologies [@Rolland:2014cl], including PPI experimentally curated with at least 2 separated papers reporting the interaction. MITAB format. Downloaded on 02/02/2017. PPI were filtered by the same tissues as MetaboSignal interactions employing the [hpar](http://bioconductor.org/packages/release/bioc/html/hpar.html) package. 
+Protein-Portein interactions (PPI) come from [APID](http://cicblade.dep.usal.es:8080/APID/init.action) level 2 interactions, derived from high-throughput (unbiased) and low-troughput (typically biased) tecnologies [@Rolland:2014cl], including PPI experimentally curated with at least 2 separated papers reporting the interaction. Downloaded on 02/02/2017. PPI were filtered by the same [hpar](http://bioconductor.org/packages/release/bioc/html/hpar.html) tissues as metaboSignal and regulatory. 
 
 ```{r PPI, message=FALSE, warning=FALSE}
-# As commented in Packages section, the hpar package is imported here to avoid conflicts with MetaboSignal
-library("hpar")
-
-# Importing the file
-APIDdata <- read.table(file = "/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/APID_level3.txt",
-           header = TRUE,
-           sep = "\t")
+APID <- read_delim(file = "Data/Individual/APID_level3.txt", "\t", escape_double = FALSE, trim_ws = TRUE)
 
 # Subsetting by Uniprot ID
-APIDdata <- subset(x = APIDdata,
-                   select = c(UniprotID_A,
-                              UniprotID_B))
+APID <- APID[, c(1,2,5)]
 
-# Inasmuch as levels in APIDdata$UniprotID_A are not the same as in APIDdata$UniprotID_B (they dont have to be), joinning the overal levels between them one is required to find more mapped aliases to entrez ids and ensamble ids. This can be checked by running
-# sum(levels(APIDdata$UniprotID_A) != levels(APIDdata$UniprotID_B))
-levels(APIDdata$UniprotID_A) <- dplyr::union(levels(APIDdata$UniprotID_A),
-                                             levels(APIDdata$UniprotID_B))
-levels(APIDdata$UniprotID_B) <- dplyr::union(levels(APIDdata$UniprotID_A),
-                                             levels(APIDdata$UniprotID_B))  # Note that dplyr::union gets rid of duplicate entries
+# Tissue specific filtering. But first lets map the UniprotID to Ensembl Id as HPAR request
+keys <- unique(c(unique(APID$UniprotID_A), unique(APID$UniprotID_B)))
 
-# Converting to entrez and ensamble ID
-PPIUniprotID_A <- as.character(unique(APIDdata$UniprotID_A))
-PPIUniprotID_A <- AnnotationDbi::select(org.Hs.eg.db,
-                                        keys = PPIUniprotID_A,
-                                        columns = c("ENTREZID",
-                                                    "ENSEMBL"),
-                                        keytype = "UNIPROT")
+UNIPROTID2ENSEMBL <- AnnotationDbi::select(org.Hs.eg.db, keys, c("ENSEMBL", "UNIPROT"), "UNIPROT")
 
-PPIUniprotID_B <- as.character(unique(APIDdata$UniprotID_B))
-PPIUniprotID_B <- AnnotationDbi::select(org.Hs.eg.db,
-                                        keys = PPIUniprotID_B,
-                                        columns = c("ENTREZID",
-                                                    "ENSEMBL"),
-                                        keytype = "UNIPROT")
+APID_ENSEMBLID <- dplyr::inner_join(APID, UNIPROTID2ENSEMBL, c("UniprotID_A" = "UNIPROT")); APID_ENSEMBLID <- dplyr::inner_join(APID_ENSEMBLID, UNIPROTID2ENSEMBL, c("UniprotID_B" = "UNIPROT"))
+```
 
-# Merging the ID into a single data frame to enlarge the number of levels (IDs)
-Uniprot2EntrezEnsmbl <- unique(dplyr::bind_rows(PPIUniprotID_A,
-                                                PPIUniprotID_B))
+Because UNIPROTID to ENSEMBLID has 1 to many mapping, number of edges in the network increase. This is an artifact as it is the same vertex but with different ID, so it is required to remove this. Fortunatelly, APID has an unique interactionID:
 
-# Conbining the APID data with the relational data frame of IDs conversion
-APIDdata <- dplyr::left_join(APIDdata, Uniprot2EntrezEnsmbl,
-                             by = c("UniprotID_A" = "UNIPROT"))
-APIDdata <- dplyr::left_join(APIDdata, Uniprot2EntrezEnsmbl,
-                             by = c("UniprotID_B" = "UNIPROT"),
-                             suffix = c("_A",
-                                        "_B"))
+```{r PPI_1, message=FALSE, warning=FALSE}
+APID_ENSEMBLID <- dplyr::distinct(APID_ENSEMBLID, InteractionID, .keep_all = T) 
+dim(APID_ENSEMBLID) 
 
-# APIDdata has NAs if an observed alias is not mapped onto the entrez or ensamble id, by the inherent behaviour of AnnotationDbi::select and many:many mapping
-sum(is.na(APIDdata$ENTREZID_A))
-sum(is.na(APIDdata$ENTREZID_B))
+# Lets drop NAs:
+any(is.na(APID_ENSEMBLID))
+APID_ENSEMBLID <- APID_ENSEMBLID[complete.cases(APID_ENSEMBLID),]
+dim(APID_ENSEMBLID)
+```
 
-# If the columns ENTREZID_A and ENTREZID_B have a NA, such row will be deleted. Note that uniprot IDs are discarded
-APIDdata <- APIDdata[complete.cases(APIDdata),
-                     c("ENTREZID_A",
-                       "ENTREZID_B",
-                       "ENSEMBL_A",
-                       "ENSEMBL_B")]
-APIDdata$ENTREZID_A <- as.numeric(APIDdata$ENTREZID_A)
-APIDdata$ENTREZID_B <- as.numeric(APIDdata$ENTREZID_B)
+There are 42856 edges left after the ID mapping
 
-# Filtering brain specific interactions from the supported or aproved reliability of "hpaNormalTissue".
+```{r PPI_2, message=FALSE, warning=FALSE}
+library("hpar")
 data("hpaNormalTissue")
-PPIhpaNormalTissue <- dplyr::select(hpaNormalTissue,
-                                 Gene,
-                                 Tissue,
-                                 Level,
-                                 Reliability)
-PPIhpaNormalTissue <- dplyr::filter(PPIhpaNormalTissue,
-                                 Reliability == "Supportive" | Reliability == "Approved",
-                                 Level == "High" | Level == "Low" | Level == "Medium",
-                                 Tissue == "hippocampus" | Tissue == "hypothalamus" | Tissue == "caudate" | Tissue == "cerebellum" | Tissue == "cerebral cortex")
+hpaNormalTissue <- dplyr::filter(hpaNormalTissue,
+Reliability == "Supportive" | Reliability == "Approved",
+Level == "High" | Level == "Low" | Level == "Medium",
+Tissue == "hippocampus" | Tissue == "hypothalamus" | Tissue == "caudate" | Tissue == "cerebellum" | Tissue == "cerebral cortex")
 
-# Tissue specific PPI
-PPI <- dplyr::left_join(APIDdata,
-                        PPIhpaNormalTissue,
-                        by = c("ENSEMBL_A" = "Gene"))
-PPI <- dplyr::left_join(PPI,
-                        PPIhpaNormalTissue,
-                        by = c("ENSEMBL_B" = "Gene"),
-                        suffix = c("_A",
-                                   "_B"))
-# 776720 interactions previous to tissue specificity filter
+APID_ready <- dplyr::semi_join(APID_ENSEMBLID,
+                        hpaNormalTissue,
+                        by = c("ENSEMBL.x" = "Gene"));APID_ready <- dplyr::semi_join(APID_ready,
+                        hpaNormalTissue,
+                        by = c("ENSEMBL.y" = "Gene"))
+```
+Now that we have the tissue-specific interactions, lets map them to the ENTREZ ID:
 
-# Deleting those interactions not expressed in the brain tissues with at least a supported reliability
-PPI <- PPI[complete.cases(PPI), ]  # 558270 interactions left
+```{r PPI_3, message=FALSE, warning=FALSE}
+keys <- unique(c(unique(APID_ready$ENSEMBL.x), unique(APID_ready$ENSEMBL.y)))
 
-# Dropping unnecesary columns
-PPI <- dplyr::select(PPI,
-                     ENTREZID_A,
-                     ENTREZID_B)
-names(PPI) <- c("EG_node1",
+ENSEMBL2EG <- AnnotationDbi::select(org.Hs.eg.db, keys, c("ENSEMBL", "ENTREZID"), "ENSEMBL")
+APID_ready <- dplyr::inner_join(APID_ready, ENSEMBL2EG, c("ENSEMBL.x" = "ENSEMBL")); APID_ready <- dplyr::inner_join(APID_ready, ENSEMBL2EG, c("ENSEMBL.y" = "ENSEMBL"))
+
+# Removing duplicates
+APID_ready <- dplyr::distinct(APID_ready, InteractionID, .keep_all = T) 
+
+# Selecting onlythe ENTREZ ID columns
+APID_ready <- APID_ready[,6:7]
+
+# Removing NAs
+APID_ready <- APID_ready[complete.cases(APID_ready),]
+
+# Renaming
+names(APID_ready) <- c("EG_node1",
                 "EG_node2")
-
 # Adding the source
-PPI$Source <- "ppi"
+APID_ready$Source <- "ppi"
 
-# Converting to factor
-PPI$EG_node1 <- as.factor(PPI$EG_node1)
-PPI$EG_node2 <- as.factor(PPI$EG_node2)
+# Converting ENTREZIDs to character
+APID_ready$EG_node1 <- as.character(APID_ready$EG_node1)
+APID_ready$EG_node2 <- as.character(APID_ready$EG_node2)
+APID_ready$Source <- as.factor(APID_ready$Source)
 
 # Exporting the file
-file.create("Data/Files_ready/ppi_ready.txt")
-PPI <- unique(PPI)
-write.table(PPI, file = "Data/Files_ready/ppi_ready.txt",
+write.table(APID_ready, file = "Data/Individual/ppi_ready.txt",
             append = FALSE,
             quote = FALSE,
             sep = "\t",
@@ -617,15 +278,17 @@ write.table(PPI, file = "Data/Files_ready/ppi_ready.txt",
                         "double"))
 
 # Creating the graph
-PPIGraph <- graph_from_data_frame(PPI,
-                                  directed = F)  # Option 1
+PPIGraph <- graph_from_data_frame(APID_ready[,1:2],
+                                  directed = FALSE) 
 
 # Cleaning the environment
-rm(APIDdata,
-   PPIhpaNormalTissue,
-   PPIUniprotID_A,
-   PPIUniprotID_B,
-   Uniprot2EntrezEnsmbl)
+rm(APID_ready,
+   APID_ENSEMBLID,
+   hpaNormalTissue,
+   UNIPROTID2ENSEMBL,
+   APID,
+   keys,
+   ENSEMBL2EG)
 ```
 
 ### 2.0 Summary
@@ -636,12 +299,12 @@ Number of physical interactions among proteins:`r ecount(PPIGraph)`
 Diameter: `r diameter(PPIGraph)`
 
 # Interactome assembly
-One can creates the human interactome brain-specific, from now on only interactome, by merging the files first and then create an igraph object, or by creating first the igraph objects from each file and then mergin them with the function igraph::union(). However for the sake of simplicity the first option is used here
+Lets merge the files to create the brain-specific human interactome (HI).
 
 ```{r interactome, message=FALSE, warning=FALSE}
 # Merging the files and deleting duplicate entries
 interactome <- unique(dplyr::bind_rows(PPI,
-                                MetaboSignal,
+                                metabosignal,
                                 regulatory))
 
 # Creating the interactome igraph object
@@ -649,32 +312,45 @@ interactomeGraph <- graph_from_data_frame(interactome,
                                           directed = FALSE)
 
 # For the sake of simplicity only the largest connected componnent (LCC) will be used to perform the validation analyses [@Kolaczyk:2014cu, p. 57]:
-# Finding the number of components (sum of second row) and their vertex number (upper row)
+# Finding the number of components (number of columns sum of second row) and their vertex number (upper row)
 table(sapply(decompose.graph(interactomeGraph),
              vcount))
 
+LCC <- which(sapply(decompose.graph(interactomeGraph),
+             vcount) == 7937)
 # Extracting only the LCC
-interactomeGraph.LCC <- decompose.graph(interactomeGraph)[[1]]
+interactomeGraph.LCC <- decompose.graph(interactomeGraph)[[LCC]]
 
 # Percentage of nodes in the giant component or LCC
 (vcount(interactomeGraph.LCC) * 100) / vcount(interactomeGraph)
+
+# Percentage of interactions in the LCC
+(ecount(interactomeGraph.LCC) * 100) / ecount(interactomeGraph)
 
 # Converting the igraph object back to data frame to exporting it
 interactome <- igraph::as_data_frame(interactomeGraph.LCC)
 names(interactome) <- c("EG_node1","EG_node2", "Source")
 interactome <- unique(interactome)
-
+```
+```{r}
 # Exporting the file
-file.create("Data/Files_ready/interactome_ready.txt")
 write.table(interactome,
-            file = "Data/Files_ready/interactome_ready.txt",
-            append = FALSE,
+            file = "Data/Individual/interactome_ready.txt",
             quote = FALSE,
             sep = "\t",
             row.names = FALSE,
-            col.names = TRUE,
-            qmethod = c("escape",
-                        "double"))
+            col.names = TRUE)
+
+freya <- lapply(X = V(interactomeGraph)$name, FUN = function(i){mget(i, org.Hs.egGENENAME)})
+
+saveRDS(interactome, "Data/Individual/interactome_ready.rds")
+
+# Plot of proportion of interactions per source
+ggplot(interactome, aes(x = "", fill = Source)) + 
+  geom_bar(position = "fill", width = 0.3) +
+  scale_fill_manual(values = c("tomato", "gold", "gray50")) +
+  labs(x = "", y = "Proportion of edges") +
+  theme(legend.position = "bottom", legend.box = "horizontal")
 
 ```
 
@@ -684,157 +360,6 @@ Number of proteins: `r vcount(interactomeGraph.LCC)`
 Number of physical interactions among proteins:`r ecount(interactomeGraph.LCC)`
 
 Diameter: `r diameter(interactomeGraph.LCC)`
-
-
-# Smaller interactome assembly
-To reduce the overepresentation of regulatory interactions, only the brain_adult interactions are going to be included in the interactome:
-## 0. Brain specific regulatory interactions
-```{r brain_adult_regulatory, message=FALSE, warning=FALSE}
-# Reading the file
-brain_adult <- unique(read_delim("/Volumes/Taveluz_1T/Universidad/11 Semestre/Thesis/Thesis_R/Data/FANTOM5_individual_networks/394_individual_networks/Included/brain_adult.csv", 
-                          "\t",
-                          escape_double = FALSE, 
-                          col_names = FALSE, 
-                          trim_ws = TRUE))
-
-# Naming the columns to be used
-brain_adult <- brain_adult[,1:2]
-names(brain_adult) <- c("TF", "Gene")
-
-# To make a larger list of gene/TF/enhancers/promoters the names of both columns of brain_adult are going to be merged, thus increasing the matches when mapping to entrez gene IDs
-brain_adult$TF <- as.factor(brain_adult$TF)
-brain_adult$Gene <- as.factor(brain_adult$Gene)
-
-# Inasmuch as levels in brain_adult$TF are not the same as in brain_adult$Gene, they dont have to be, joinning the overal levels between them one is required to find more mapped aliases to entrez ids. this can be checked by running
-# sum(levels(brain_adult$Gene) != levels(brain_adult$TF))
-levels(brain_adult$TF) <- dplyr::union(levels(brain_adult$TF),
-                                      levels(brain_adult$Gene))
-levels(brain_adult$Gene) <- dplyr::union(levels(brain_adult$TF),
-                                        levels(brain_adult$Gene))
-
-# Creating the list of entrez ids. Note that in columns you can select whatever number of columns from columns(org.Hs.eg.db), including another ids.
-brain_adultTF <- as.character(brain_adult$TF)
-brain_adultTF <- AnnotationDbi::select(org.Hs.eg.db,
-                                      keys = brain_adultTF,
-                                      columns = c("ENTREZID", "ENSEMBL"),
-                                      keytype = "ALIAS")
-brain_adultGene <- as.character(brain_adult$Gene)
-brain_adultGene <- AnnotationDbi::select(org.Hs.eg.db,
-                                        keys = brain_adultGene,
-                                        columns = c("ENTREZID", "ENSEMBL"),
-                                        keytype = "ALIAS")
-
-# Combining the two list of entrez ID and ensemble ID into a single one
-Alias2Entrez <- unique(dplyr::bind_rows(brain_adultTF,
-                                        brain_adultGene))
-
-# Mapping the observed gene aliases onto entrez IDs
-brain_adult <- dplyr::left_join(brain_adult,
-                               Alias2Entrez,
-                               by = c("TF" = "ALIAS"),
-                               suffix = c("TF",
-                                          "Gene"))
-brain_adult <- dplyr::left_join(brain_adult,
-                               Alias2Entrez,
-                               by = c("Gene" = "ALIAS"),
-                               suffix = c("TF",
-                                          "Gene"))
-
-# However it has NA when an observed alias is not mapped onto the entrez id, by the inherent behaviour of AnnotationDbi::select and many:many mapping
-sum(is.na(brain_adult$ENTREZIDTF))
-sum(is.na(brain_adult$ENTREZIDGene))
-
-# If the columns entrezTF and entrezGene have a NA, such row will be deleted
-brain_adult <- unique(brain_adult[complete.cases(brain_adult), c("ENTREZIDTF", "ENTREZIDGene")])
-
-# Changing the names and adding the source
-names(brain_adult) <- c("EG_node1",
-                       "EG_node2")
-brain_adult$Source <- "regulatory"
-
-# Converting to factor
-brain_adult$EG_node1 <- as.factor(brain_adult$EG_node1)
-brain_adult$EG_node2 <- as.factor(brain_adult$EG_node2)
-
-# Exporting the file
-file.create("Data/Files_ready/regulatory_ready_2.txt")
-brain_adult <- unique(brain_adult)
-write.table(brain_adult, file = "Data/Files_ready/regulatory_ready_2.txt",
-            append = FALSE,
-            quote = FALSE,
-            sep = "\t",
-            row.names = FALSE,
-            col.names = TRUE,
-            qmethod = c("escape",
-                        "double"))
-
-# Creating the graph
-brain_adultGraph <- graph_from_data_frame(brain_adult,
-                                 directed = F)
-
-# Cleaning the environment
-rm(Alias2Entrez, brain_adultTF, brain_adultGene)
-
-```
-
-### Summary
-Number of proteins: `r vcount(brain_adultGraph)`
-
-Number of physical interactions among proteins:`r ecount(brain_adultGraph)`
-
-Diameter: `r diameter(brain_adultGraph)`
-
-## 1. Ensambling the smaller interactome
-```{r smaller_interactome, message=FALSE, warning=FALSE}
-# Merging the files and deleting duplicate entries
-interactome2 <- unique(dplyr::bind_rows(PPI,
-                                MetaboSignal,
-                                brain_adult))
-
-# Creating the interactome igraph object
-interactomeGraph2 <- graph_from_data_frame(interactome2,
-                                          directed = FALSE)
-
-# For the sake of simplicity only the largest connected componnent (LCC) will be used to perform the validation analyses [@Kolaczyk:2014cu, p. 57]:
-# Finding the number of components and their vertex number
-table(sapply(decompose.graph(interactomeGraph2),
-             vcount))
-
-# Extracting only the LCC
-interactomeGraph2.LCC <- decompose.graph(interactomeGraph2)[[1]]
-
-# Percentage of nodes in the giant component or LCC
-(vcount(interactomeGraph2.LCC) * 100) / vcount(interactomeGraph2)
-
-# Converting the igraph object back to data frame to exporting it
-interactome2 <- igraph::as_data_frame(interactomeGraph2.LCC)
-names(interactome2) <- c("EG_node1","EG_node2", "Source")
-interactome2 <- unique(interactome2)
-
-# Exporting the file
-file.create("Data/Files_ready/interactome_ready_2.txt")
-write.table(interactome2,
-            file = "Data/Files_ready/interactome_ready_2.txt",
-            append = FALSE,
-            quote = FALSE,
-            sep = "\t",
-            row.names = FALSE,
-            col.names = TRUE,
-            qmethod = c("escape",
-                        "double"))
-```
-
-### Summary
-Number of proteins: `r vcount(interactomeGraph2.LCC)`
-
-Number of physical interactions among proteins:`r ecount(interactomeGraph2.LCC)`
-
-Diameter: `r diameter(interactomeGraph2.LCC)`
-
-```{r message=FALSE, warning=FALSE}
-# Cleaning the environment
-rm(list = ls())
-```
 
 ***
 # References

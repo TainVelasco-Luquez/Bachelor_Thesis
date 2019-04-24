@@ -1,0 +1,432 @@
+name	Source	SYMBOL	ENSEMBL	GENENAME
+43	Seed	ACHE	ENSG00000087085	acetylcholinesterase (Cartwright blood group)
+627	Seed	BDNF	ENSG00000176697	brain derived neurotrophic factor
+840	Seed	CASP7	ENSG00000165806	caspase 7
+950	Seed	SCARB2	ENSG00000138760	scavenger receptor class B member 2
+1565	Seed	CYP2D6	ENSG00000100197	cytochrome P450 family 2 subfamily D member 6
+1576	Seed	CYP3A4	ENSG00000160868	cytochrome P450 family 3 subfamily A member 4
+1813	Seed	DRD2	ENSG00000149295	dopamine receptor D2
+2629	Seed	GBA	ENSG00000177628	glucosylceramidase beta
+2651	Seed	GCNT2	ENSG00000111846	glucosaminyl (N-acetyl) transferase 2 (I blood group)
+3060	Seed	HCRT	ENSG00000161610	hypocretin neuropeptide precursor
+3119	Seed	HLA-DQB1	ENSG00000179344	major histocompatibility complex, class II, DQ beta 1
+3350	Seed	HTR1A	ENSG00000178394	5-hydroxytryptamine receptor 1A
+3356	Seed	HTR2A	ENSG00000102468	5-hydroxytryptamine receptor 2A
+3358	Seed	HTR2C	ENSG00000147246	5-hydroxytryptamine receptor 2C
+4137	Seed	MAPT	ENSG00000186868	microtubule associated protein tau
+5071	Seed	PRKN	ENSG00000185345	parkin RBR E3 ubiquitin protein ligase
+5673	Seed	PSG5	ENSG00000204941	pregnancy specific beta-1-glycoprotein 5
+6233	Seed	RPS27A	ENSG00000143947	ribosomal protein S27a
+6531	Seed	SLC6A3	ENSG00000142319	solute carrier family 6 member 3
+6532	Seed	SLC6A4	ENSG00000108576	solute carrier family 6 member 4
+6622	Seed	SNCA	ENSG00000145335	synuclein alpha
+6949	Seed	TCOF1	ENSG00000070814	treacle ribosome biogenesis factor 1
+8431	Seed	NR0B2	ENSG00000131910	nuclear receptor subfamily 0 group B member 2
+28954	Seed	REM1	ENSG00000088320	RRAD and GEM like GTPase 1
+64838	Seed	FNDC4	ENSG00000115226	fibronectin type III domain containing 4
+120892	Seed	LRRK2	ENSG00000188906	leucine rich repeat kinase 2
+1385	DIAMOnD	CREB1	ENSG00000118260	cAMP responsive element binding protein 1
+2117	DIAMOnD	ETV3	ENSG00000117036	ETS variant 3
+4892	DIAMOnD	NRAP	ENSG00000197893	nebulin related anchoring protein
+1738	DIAMOnD	DLD	ENSG00000091140	dihydrolipoamide dehydrogenase
+4340	DIAMOnD	MOG	ENSG00000204655	myelin oligodendrocyte glycoprotein
+23082	DIAMOnD	PPRC1	ENSG00000148840	peroxisome proliferator-activated receptor gamma, coactivator-related 1
+4864	DIAMOnD	NPC1	ENSG00000141458	NPC intracellular cholesterol transporter 1
+5376	DIAMOnD	PMP22	ENSG00000109099	peripheral myelin protein 22
+8013	DIAMOnD	NR4A3	ENSG00000119508	nuclear receptor subfamily 4 group A member 3
+6898	DIAMOnD	TAT	ENSG00000198650	tyrosine aminotransferase
+4778	DIAMOnD	NFE2	ENSG00000123405	nuclear factor, erythroid 2
+4477	DIAMOnD	MSMB	ENSG00000263639	microseminoprotein beta
+5827	DIAMOnD	PXMP2	ENSG00000176894	peroxisomal membrane protein 2
+3112	DIAMOnD	HLA-DOB	ENSG00000241106	major histocompatibility complex, class II, DO beta
+26034	DIAMOnD	IPCEF1	ENSG00000074706	interaction protein for cytohesin exchange factors 1
+1734	DIAMOnD	DIO2	ENSG00000211448	iodothyronine deiodinase 2
+7425	DIAMOnD	VGF	ENSG00000128564	VGF nerve growth factor inducible
+5082	DIAMOnD	PDCL	ENSG00000136940	phosducin like
+5122	DIAMOnD	PCSK1	ENSG00000175426	proprotein convertase subtilisin/kexin type 1
+4628	DIAMOnD	MYH10	ENSG00000133026	myosin heavy chain 10
+466	DIAMOnD	ATF1	ENSG00000123268	activating transcription factor 1
+6574	DIAMOnD	SLC20A1	ENSG00000144136	solute carrier family 20 member 1
+360	DIAMOnD	AQP3	ENSG00000165272	aquaporin 3 (Gill blood group)
+8869	DIAMOnD	ST3GAL5	ENSG00000115525	ST3 beta-galactoside alpha-2,3-sialyltransferase 5
+1585	DIAMOnD	CYP11B2	ENSG00000179142	cytochrome P450 family 11 subfamily B member 2
+4014	DIAMOnD	LOR	ENSG00000203782	loricrin
+1584	DIAMOnD	CYP11B1	ENSG00000160882	cytochrome P450 family 11 subfamily B member 1
+925	DIAMOnD	CD8A	ENSG00000153563	CD8a molecule
+796	DIAMOnD	CALCA	ENSG00000110680	calcitonin related polypeptide alpha
+4922	DIAMOnD	NTS	ENSG00000133636	neurotensin
+5423	DIAMOnD	POLB	ENSG00000070501	DNA polymerase beta
+3135	DIAMOnD	HLA-G	ENSG00000204632	major histocompatibility complex, class I, G
+9412	DIAMOnD	MED21	ENSG00000152944	mediator complex subunit 21
+7368	DIAMOnD	UGT8	ENSG00000174607	UDP glycosyltransferase 8
+11232	DIAMOnD	POLG2	ENSG00000256525	DNA polymerase gamma 2, accessory subunit
+155	DIAMOnD	ADRB3	ENSG00000188778	adrenoceptor beta 3
+7038	DIAMOnD	TG	ENSG00000042832	thyroglobulin
+2689	DIAMOnD	GH2	ENSG00000136487	growth hormone 2
+4056	DIAMOnD	LTC4S	ENSG00000213316	leukotriene C4 synthase
+6573	DIAMOnD	SLC19A1	ENSG00000173638	solute carrier family 19 member 1
+4582	DIAMOnD	MUC1	ENSG00000185499	mucin 1, cell surface associated
+7150	DIAMOnD	TOP1	ENSG00000198900	DNA topoisomerase I
+1113	DIAMOnD	CHGA	ENSG00000100604	chromogranin A
+3398	DIAMOnD	ID2	ENSG00000115738	inhibitor of DNA binding 2
+2313	DIAMOnD	FLI1	ENSG00000151702	Fli-1 proto-oncogene, ETS transcription factor
+2516	DIAMOnD	NR5A1	ENSG00000136931	nuclear receptor subfamily 5 group A member 1
+7020	DIAMOnD	TFAP2A	ENSG00000137203	transcription factor AP-2 alpha
+7054	DIAMOnD	TH	ENSG00000180176	tyrosine hydroxylase
+7166	DIAMOnD	TPH1	ENSG00000129167	tryptophan hydroxylase 1
+9620	DIAMOnD	CELSR1	ENSG00000075275	cadherin EGF LAG seven-pass G-type receptor 1
+4200	DIAMOnD	ME2	ENSG00000082212	malic enzyme 2
+7433	DIAMOnD	VIPR1	ENSG00000114812	vasoactive intestinal peptide receptor 1
+593	DIAMOnD	BCKDHA	ENSG00000248098	branched chain keto acid dehydrogenase E1, alpha polypeptide
+56125	DIAMOnD	PCDHB11	ENSG00000197479	protocadherin beta 11
+6725	DIAMOnD	SRMS	ENSG00000125508	src-related kinase lacking C-terminal regulatory tyrosine and N-terminal myristylation sites
+6723	DIAMOnD	SRM	ENSG00000116649	spermidine synthase
+3162	DIAMOnD	HMOX1	ENSG00000100292	heme oxygenase 1
+1081	DIAMOnD	CGA	ENSG00000135346	glycoprotein hormones, alpha polypeptide
+1386	DIAMOnD	ATF2	ENSG00000115966	activating transcription factor 2
+5179	DIAMOnD	PENK	ENSG00000181195	proenkephalin
+3725	DIAMOnD	JUN	ENSG00000177606	Jun proto-oncogene, AP-1 transcription factor subunit
+3077	DIAMOnD	HFE	ENSG00000010704	homeostatic iron regulator
+5327	DIAMOnD	PLAT	ENSG00000104368	plasminogen activator, tissue type
+5055	DIAMOnD	SERPINB2	ENSG00000197632	serpin family B member 2
+1621	DIAMOnD	DBH	ENSG00000123454	dopamine beta-hydroxylase
+7432	DIAMOnD	VIP	ENSG00000146469	vasoactive intestinal peptide
+2353	DIAMOnD	FOS	ENSG00000170345	Fos proto-oncogene, AP-1 transcription factor subunit
+2006	DIAMOnD	ELN	ENSG00000049540	elastin
+5329	DIAMOnD	PLAUR	ENSG00000011422	plasminogen activator, urokinase receptor
+7124	DIAMOnD	TNF	ENSG00000232810	tumor necrosis factor
+4782	DIAMOnD	NFIC	ENSG00000141905	nuclear factor I C
+5743	DIAMOnD	PTGS2	ENSG00000073756	prostaglandin-endoperoxide synthase 2
+4842	DIAMOnD	NOS1	ENSG00000089250	nitric oxide synthase 1
+5425	DIAMOnD	POLD2	ENSG00000106628	DNA polymerase delta 2, accessory subunit
+1583	DIAMOnD	CYP11A1	ENSG00000140459	cytochrome P450 family 11 subfamily A member 1
+6667	DIAMOnD	SP1	ENSG00000185591	Sp1 transcription factor
+7343	DIAMOnD	UBTF	ENSG00000108312	upstream binding transcription factor
+3868	DIAMOnD	KRT16	ENSG00000186832	keratin 16
+2114	DIAMOnD	ETS2	ENSG00000157557	ETS proto-oncogene 2, transcription factor
+2908	DIAMOnD	NR3C1	ENSG00000113580	nuclear receptor subfamily 3 group C member 1
+4318	DIAMOnD	MMP9	ENSG00000100985	matrix metallopeptidase 9
+1026	DIAMOnD	CDKN1A	ENSG00000124762	cyclin dependent kinase inhibitor 1A
+2113	DIAMOnD	ETS1	ENSG00000134954	ETS proto-oncogene 1, transcription factor
+3875	DIAMOnD	KRT18	ENSG00000111057	keratin 18
+4314	DIAMOnD	MMP3	ENSG00000149968	matrix metallopeptidase 3
+2118	DIAMOnD	ETV4	ENSG00000175832	ETS variant 4
+5046	DIAMOnD	PCSK6	ENSG00000140479	proprotein convertase subtilisin/kexin type 6
+7076	DIAMOnD	TIMP1	ENSG00000102265	TIMP metallopeptidase inhibitor 1
+146664	DIAMOnD	MGAT5B	ENSG00000167889	alpha-1,6-mannosylglycoprotein 6-beta-N-acetylglucosaminyltransferase B
+1594	DIAMOnD	CYP27B1	ENSG00000111012	cytochrome P450 family 27 subfamily B member 1
+683	DIAMOnD	BST1	ENSG00000109743	bone marrow stromal cell antigen 1
+2314	DIAMOnD	FLII	ENSG00000177731	FLII, actin remodeling protein
+4790	DIAMOnD	NFKB1	ENSG00000109320	nuclear factor kappa B subunit 1
+8174	DIAMOnD	MADCAM1	ENSG00000099866	mucosal vascular addressin cell adhesion molecule 1
+3485	DIAMOnD	IGFBP2	ENSG00000115457	insulin like growth factor binding protein 2
+7134	DIAMOnD	TNNC1	ENSG00000114854	troponin C1, slow skeletal and cardiac type
+355	DIAMOnD	FAS	ENSG00000026103	Fas cell surface death receptor
+2078	DIAMOnD	ERG	ENSG00000157554	ETS transcription factor ERG
+7431	DIAMOnD	VIM	ENSG00000026025	vimentin
+4313	DIAMOnD	MMP2	ENSG00000087245	matrix metallopeptidase 2
+3553	DIAMOnD	IL1B	ENSG00000125538	interleukin 1 beta
+6647	DIAMOnD	SOD1	ENSG00000142168	superoxide dismutase 1
+1958	DIAMOnD	EGR1	ENSG00000120738	early growth response 1
+7980	DIAMOnD	TFPI2	ENSG00000105825	tissue factor pathway inhibitor 2
+2194	DIAMOnD	FASN	ENSG00000169710	fatty acid synthase
+3560	DIAMOnD	IL2RB	ENSG00000100385	interleukin 2 receptor subunit beta
+7077	DIAMOnD	TIMP2	ENSG00000035862	TIMP metallopeptidase inhibitor 2
+7490	DIAMOnD	WT1	ENSG00000184937	Wilms tumor 1
+5243	DIAMOnD	ABCB1	ENSG00000085563	ATP binding cassette subfamily B member 1
+3569	DIAMOnD	IL6	ENSG00000136244	interleukin 6
+8996	DIAMOnD	NOL3	ENSG00000140939	nucleolar protein 3
+6774	DIAMOnD	STAT3	ENSG00000168610	signal transducer and activator of transcription 3
+4585	DIAMOnD	MUC4	ENSG00000145113	mucin 4, cell surface associated
+1051	DIAMOnD	CEBPB	ENSG00000172216	CCAAT enhancer binding protein beta
+2152	DIAMOnD	F3	ENSG00000117525	coagulation factor III, tissue factor
+7423	DIAMOnD	VEGFB	ENSG00000173511	vascular endothelial growth factor B
+1139	DIAMOnD	CHRNA7	ENSG00000175344	cholinergic receptor nicotinic alpha 7 subunit
+1588	DIAMOnD	CYP19A1	ENSG00000137869	cytochrome P450 family 19 subfamily A member 1
+595	DIAMOnD	CCND1	ENSG00000110092	cyclin D1
+1052	DIAMOnD	CEBPD	ENSG00000221869	CCAAT enhancer binding protein delta
+6352	DIAMOnD	CCL5	ENSG00000271503	C-C motif chemokine ligand 5
+1050	DIAMOnD	CEBPA	ENSG00000245848	CCAAT enhancer binding protein alpha
+930	DIAMOnD	CD19	ENSG00000177455	CD19 molecule
+3552	DIAMOnD	IL1A	ENSG00000115008	interleukin 1 alpha
+6441	DIAMOnD	SFTPD	ENSG00000133661	surfactant protein D
+4321	DIAMOnD	MMP12	ENSG00000262406	matrix metallopeptidase 12
+2668	DIAMOnD	GDNF	ENSG00000168621	glial cell derived neurotrophic factor
+7040	DIAMOnD	TGFB1	ENSG00000105329	transforming growth factor beta 1
+7391	DIAMOnD	USF1	ENSG00000158773	upstream transcription factor 1
+943	DIAMOnD	TNFRSF8	ENSG00000120949	TNF receptor superfamily member 8
+5443	DIAMOnD	POMC	ENSG00000115138	proopiomelanocortin
+7157	DIAMOnD	TP53	ENSG00000141510	tumor protein p53
+3481	DIAMOnD	IGF2	ENSG00000167244	insulin like growth factor 2
+4322	DIAMOnD	MMP13	ENSG00000137745	matrix metallopeptidase 13
+5054	DIAMOnD	SERPINE1	ENSG00000106366	serpin family E member 1
+7392	DIAMOnD	USF2	ENSG00000105698	upstream transcription factor 2, c-fos interacting
+891	DIAMOnD	CCNB1	ENSG00000134057	cyclin B1
+7015	DIAMOnD	TERT	ENSG00000164362	telomerase reverse transcriptase
+672	DIAMOnD	BRCA1	ENSG00000012048	BRCA1, DNA repair associated
+5669	DIAMOnD	PSG1	ENSG00000231924	pregnancy specific beta-1-glycoprotein 1
+2099	DIAMOnD	ESR1	ENSG00000091831	estrogen receptor 1
+6670	DIAMOnD	SP3	ENSG00000172845	Sp3 transcription factor
+4846	DIAMOnD	NOS3	ENSG00000164867	nitric oxide synthase 3
+675	DIAMOnD	BRCA2	ENSG00000139618	BRCA2, DNA repair associated
+348	DIAMOnD	APOE	ENSG00000130203	apolipoprotein E
+6948	DIAMOnD	TCN2	ENSG00000185339	transcobalamin 2
+4843	DIAMOnD	NOS2	ENSG00000007171	nitric oxide synthase 2
+3091	DIAMOnD	HIF1A	ENSG00000100644	hypoxia inducible factor 1 subunit alpha
+6772	DIAMOnD	STAT1	ENSG00000115415	signal transducer and activator of transcription 1
+596	DIAMOnD	BCL2	ENSG00000171791	BCL2, apoptosis regulator
+5970	DIAMOnD	RELA	ENSG00000173039	RELA proto-oncogene, NF-kB subunit
+3315	DIAMOnD	HSPB1	ENSG00000106211	heat shock protein family B (small) member 1
+7422	DIAMOnD	VEGFA	ENSG00000112715	vascular endothelial growth factor A
+929	DIAMOnD	CD14	ENSG00000170458	CD14 molecule
+1508	DIAMOnD	CTSB	ENSG00000164733	cathepsin B
+367	DIAMOnD	AR	ENSG00000169083	androgen receptor
+1012	DIAMOnD	CDH13	ENSG00000140945	cadherin 13
+5914	DIAMOnD	RARA	ENSG00000131759	retinoic acid receptor alpha
+5328	DIAMOnD	PLAU	ENSG00000122861	plasminogen activator, urokinase
+5460	DIAMOnD	POU5F1	ENSG00000204531	POU class 5 homeobox 1
+374	DIAMOnD	AREG	ENSG00000109321	amphiregulin
+4089	DIAMOnD	SMAD4	ENSG00000141646	SMAD family member 4
+231	DIAMOnD	AKR1B1	ENSG00000085662	aldo-keto reductase family 1 member B
+5744	DIAMOnD	PTHLH	ENSG00000087494	parathyroid hormone like hormone
+213	DIAMOnD	ALB	ENSG00000163631	albumin
+1071	DIAMOnD	CETP	ENSG00000087237	cholesteryl ester transfer protein
+5915	DIAMOnD	RARB	ENSG00000077092	retinoic acid receptor beta
+3383	DIAMOnD	ICAM1	ENSG00000090339	intercellular adhesion molecule 1
+5468	DIAMOnD	PPARG	ENSG00000132170	peroxisome proliferator activated receptor gamma
+1956	DIAMOnD	EGFR	ENSG00000146648	epidermal growth factor receptor
+2100	DIAMOnD	ESR2	ENSG00000140009	estrogen receptor 2
+4088	DIAMOnD	SMAD3	ENSG00000166949	SMAD family member 3
+1906	DIAMOnD	EDN1	ENSG00000078401	endothelin 1
+8288	DIAMOnD	EPX	ENSG00000121053	eosinophil peroxidase
+5449	DIAMOnD	POU1F1	ENSG00000064835	POU class 1 homeobox 1
+7048	DIAMOnD	TGFBR2	ENSG00000163513	transforming growth factor beta receptor 2
+7042	DIAMOnD	TGFB2	ENSG00000092969	transforming growth factor beta 2
+5966	DIAMOnD	REL	ENSG00000162924	REL proto-oncogene, NF-kB subunit
+1465	DIAMOnD	CSRP1	ENSG00000159176	cysteine and glycine rich protein 1
+5451	DIAMOnD	POU2F1	ENSG00000143190	POU class 2 homeobox 1
+3558	DIAMOnD	IL2	ENSG00000109471	interleukin 2
+5916	DIAMOnD	RARG	ENSG00000172819	retinoic acid receptor gamma
+3630	DIAMOnD	INS	ENSG00000254647	insulin
+7173	DIAMOnD	TPO	ENSG00000115705	thyroid peroxidase
+2950	DIAMOnD	GSTP1	ENSG00000084207	glutathione S-transferase pi 1
+10957	DIAMOnD	PNRC1	ENSG00000146278	proline rich nuclear receptor coactivator 1
+1382	DIAMOnD	CRABP2	ENSG00000143320	cellular retinoic acid binding protein 2
+6595	DIAMOnD	SMARCA2	ENSG00000080503	SWI/SNF related, matrix associated, actin dependent regulator of chromatin, subfamily a, member 2
+6594	DIAMOnD	SMARCA1	ENSG00000102038	SWI/SNF related, matrix associated, actin dependent regulator of chromatin, subfamily a, member 1
+11336	DIAMOnD	EXOC3	ENSG00000180104	exocyst complex component 3
+1647	DIAMOnD	GADD45A	ENSG00000116717	growth arrest and DNA damage inducible alpha
+6688	DIAMOnD	SPI1	ENSG00000066336	Spi-1 proto-oncogene
+6528	DIAMOnD	SLC5A5	ENSG00000105641	solute carrier family 5 member 5
+6401	DIAMOnD	SELE	ENSG00000007908	selectin E
+6916	DIAMOnD	TBXAS1	ENSG00000059377	thromboxane A synthase 1
+1543	DIAMOnD	CYP1A1	ENSG00000140465	cytochrome P450 family 1 subfamily A member 1
+6280	DIAMOnD	S100A9	ENSG00000163220	S100 calcium binding protein A9
+4602	DIAMOnD	MYB	ENSG00000118513	MYB proto-oncogene, transcription factor
+23415	DIAMOnD	KCNH4	ENSG00000089558	potassium voltage-gated channel subfamily H member 4
+5742	DIAMOnD	PTGS1	ENSG00000095303	prostaglandin-endoperoxide synthase 1
+131096	DIAMOnD	KCNH8	ENSG00000183960	potassium voltage-gated channel subfamily H member 8
+5241	DIAMOnD	PGR	ENSG00000082175	progesterone receptor
+7018	DIAMOnD	TF	ENSG00000091513	transferrin
+3484	DIAMOnD	IGFBP1	ENSG00000146678	insulin like growth factor binding protein 1
+4144	DIAMOnD	MAT2A	ENSG00000168906	methionine adenosyltransferase 2A
+268	DIAMOnD	AMH	ENSG00000104899	anti-Mullerian hormone
+488	DIAMOnD	ATP2A2	ENSG00000174437	ATPase sarcoplasmic/endoplasmic reticulum Ca2+ transporting 2
+1387	DIAMOnD	CREBBP	ENSG00000005339	CREB binding protein
+7037	DIAMOnD	TFRC	ENSG00000072274	transferrin receptor
+6279	DIAMOnD	S100A8	ENSG00000143546	S100 calcium binding protein A8
+1592	DIAMOnD	CYP26A1	ENSG00000095596	cytochrome P450 family 26 subfamily A member 1
+6121	DIAMOnD	RPE65	ENSG00000116745	RPE65, retinoid isomerohydrolase
+9308	DIAMOnD	CD83	ENSG00000112149	CD83 molecule
+4481	DIAMOnD	MSR1	ENSG00000038945	macrophage scavenger receptor 1
+6439	DIAMOnD	SFTPB	ENSG00000168878	surfactant protein B
+2204	DIAMOnD	FCAR	ENSG00000186431	Fc fragment of IgA receptor
+189	DIAMOnD	AGXT	ENSG00000172482	alanine--glyoxylate and serine--pyruvate aminotransferase
+183	DIAMOnD	AGT	ENSG00000135744	angiotensinogen
+10875	DIAMOnD	FGL2	ENSG00000127951	fibrinogen like 2
+3292	DIAMOnD	HSD17B1	ENSG00000108786	hydroxysteroid 17-beta dehydrogenase 1
+290	DIAMOnD	ANPEP	ENSG00000166825	alanyl aminopeptidase, membrane
+7080	DIAMOnD	NKX2-1	ENSG00000136352	NK2 homeobox 1
+7849	DIAMOnD	PAX8	ENSG00000125618	paired box 8
+8797	DIAMOnD	TNFRSF10A	ENSG00000104689	TNF receptor superfamily member 10a
+1277	DIAMOnD	COL1A1	ENSG00000108821	collagen type I alpha 1 chain
+4616	DIAMOnD	GADD45B	ENSG00000099860	growth arrest and DNA damage inducible beta
+5465	DIAMOnD	PPARA	ENSG00000186951	peroxisome proliferator activated receptor alpha
+3991	DIAMOnD	LIPE	ENSG00000079435	lipase E, hormone sensitive type
+51129	DIAMOnD	ANGPTL4	ENSG00000167772	angiopoietin like 4
+345	DIAMOnD	APOC3	ENSG00000110245	apolipoprotein C3
+338	DIAMOnD	APOB	ENSG00000084674	apolipoprotein B
+335	DIAMOnD	APOA1	ENSG00000118137	apolipoprotein A1
+3157	DIAMOnD	HMGCS1	ENSG00000112972	3-hydroxy-3-methylglutaryl-CoA synthase 1
+10912	DIAMOnD	GADD45G	ENSG00000130222	growth arrest and DNA damage inducible gamma
+5160	DIAMOnD	PDHA1	ENSG00000131828	pyruvate dehydrogenase E1 alpha 1 subunit
+861	DIAMOnD	RUNX1	ENSG00000159216	runt related transcription factor 1
+5467	DIAMOnD	PPARD	ENSG00000112033	peroxisome proliferator activated receptor delta
+949	DIAMOnD	SCARB1	ENSG00000073060	scavenger receptor class B member 1
+894	DIAMOnD	CCND2	ENSG00000118971	cyclin D2
+6777	DIAMOnD	STAT5B	ENSG00000173757	signal transducer and activator of transcription 5B
+958	DIAMOnD	CD40	ENSG00000101017	CD40 molecule
+1447	DIAMOnD	CSN2	ENSG00000135222	casein beta
+3718	DIAMOnD	JAK3	ENSG00000105639	Janus kinase 3
+6776	DIAMOnD	STAT5A	ENSG00000126561	signal transducer and activator of transcription 5A
+8731	DIAMOnD	RNMT	ENSG00000101654	RNA guanine-7 methyltransferase
+2322	DIAMOnD	FLT3	ENSG00000122025	fms related tyrosine kinase 3
+7078	DIAMOnD	TIMP3	ENSG00000100234	TIMP metallopeptidase inhibitor 3
+3559	DIAMOnD	IL2RA	ENSG00000134460	interleukin 2 receptor subunit alpha
+598	DIAMOnD	BCL2L1	ENSG00000171552	BCL2 like 1
+2002	DIAMOnD	ELK1	ENSG00000126767	ELK1, ETS transcription factor
+11344	DIAMOnD	TWF2	ENSG00000247596	twinfilin actin binding protein 2
+2033	DIAMOnD	EP300	ENSG00000100393	E1A binding protein p300
+226	DIAMOnD	ALDOA	ENSG00000149925	aldolase, fructose-bisphosphate A
+6932	DIAMOnD	TCF7	ENSG00000081059	transcription factor 7
+4609	DIAMOnD	MYC	ENSG00000136997	MYC proto-oncogene, bHLH transcription factor
+3214	DIAMOnD	HOXB4	ENSG00000182742	homeobox B4
+4953	DIAMOnD	ODC1	ENSG00000115758	ornithine decarboxylase 1
+6778	DIAMOnD	STAT6	ENSG00000166888	signal transducer and activator of transcription 6
+10401	DIAMOnD	PIAS3	ENSG00000131788	protein inhibitor of activated STAT 3
+6775	DIAMOnD	STAT4	ENSG00000138378	signal transducer and activator of transcription 4
+6773	DIAMOnD	STAT2	ENSG00000170581	signal transducer and activator of transcription 2
+2670	DIAMOnD	GFAP	ENSG00000131095	glial fibrillary acidic protein
+5292	DIAMOnD	PIM1	ENSG00000137193	Pim-1 proto-oncogene, serine/threonine kinase
+316	DIAMOnD	AOX1	ENSG00000138356	aldehyde oxidase 1
+8554	DIAMOnD	PIAS1	ENSG00000033800	protein inhibitor of activated STAT 1
+9063	DIAMOnD	PIAS2	ENSG00000078043	protein inhibitor of activated STAT 2
+1030	DIAMOnD	CDKN2B	ENSG00000147883	cyclin dependent kinase inhibitor 2B
+8651	DIAMOnD	SOCS1	ENSG00000185338	suppressor of cytokine signaling 1
+51588	DIAMOnD	PIAS4	ENSG00000105229	protein inhibitor of activated STAT 4
+8835	DIAMOnD	SOCS2	ENSG00000120833	suppressor of cytokine signaling 2
+896	DIAMOnD	CCND3	ENSG00000112576	cyclin D3
+6654	DIAMOnD	SOS1	ENSG00000115904	SOS Ras/Rac guanine nucleotide exchange factor 1
+9655	DIAMOnD	SOCS5	ENSG00000171150	suppressor of cytokine signaling 5
+1154	DIAMOnD	CISH	ENSG00000114737	cytokine inducible SH2 containing protein
+3728	DIAMOnD	JUP	ENSG00000173801	junction plakoglobin
+51176	DIAMOnD	LEF1	ENSG00000138795	lymphoid enhancer binding factor 1
+4907	DIAMOnD	NT5E	ENSG00000135318	5'-nucleotidase ecto
+8061	DIAMOnD	FOSL1	ENSG00000175592	FOS like 1, AP-1 transcription factor subunit
+83439	DIAMOnD	TCF7L1	ENSG00000152284	transcription factor 7 like 1
+4316	DIAMOnD	MMP7	ENSG00000137673	matrix metallopeptidase 7
+6934	DIAMOnD	TCF7L2	ENSG00000148737	transcription factor 7 like 2
+332	DIAMOnD	BIRC5	ENSG00000089685	baculoviral IAP repeat containing 5
+9021	DIAMOnD	SOCS3	ENSG00000184557	suppressor of cytokine signaling 3
+1499	DIAMOnD	CTNNB1	ENSG00000168036	catenin beta 1
+6319	DIAMOnD	SCD	ENSG00000099194	stearoyl-CoA desaturase
+30837	DIAMOnD	SOCS7	ENSG00000274211	suppressor of cytokine signaling 7
+7350	DIAMOnD	UCP1	ENSG00000109424	uncoupling protein 1
+3939	DIAMOnD	LDHA	ENSG00000134333	lactate dehydrogenase A
+89874	DIAMOnD	SLC25A21	ENSG00000183032	solute carrier family 25 member 21
+754	DIAMOnD	PTTG1IP	ENSG00000183255	PTTG1 interacting protein
+1636	DIAMOnD	ACE	ENSG00000159640	angiotensin I converting enzyme
+5551	DIAMOnD	PRF1	ENSG00000180644	perforin 1
+328	DIAMOnD	APEX1	ENSG00000100823	apurinic/apyrimidinic endodeoxyribonuclease 1
+8570	DIAMOnD	KHSRP	ENSG00000088247	KH-type splicing regulatory protein
+8607	DIAMOnD	RUVBL1	ENSG00000175792	RuvB like AAA ATPase 1
+8209	DIAMOnD	GATD3A	ENSG00000160221	glutamine amidotransferase like class 1 domain containing 3A
+4830	DIAMOnD	NME1	ENSG00000239672	NME/NM23 nucleoside diphosphate kinase 1
+1027	DIAMOnD	CDKN1B	ENSG00000111276	cyclin dependent kinase inhibitor 1B
+4170	DIAMOnD	MCL1	ENSG00000143384	MCL1, BCL2 family apoptosis regulator
+7424	DIAMOnD	VEGFC	ENSG00000150630	vascular endothelial growth factor C
+405	DIAMOnD	ARNT	ENSG00000143437	aryl hydrocarbon receptor nuclear translocator
+5230	DIAMOnD	PGK1	ENSG00000102144	phosphoglycerate kinase 1
+2023	DIAMOnD	ENO1	ENSG00000074800	enolase 1
+2026	DIAMOnD	ENO2	ENSG00000111674	enolase 2
+2597	DIAMOnD	GAPDH	ENSG00000111640	glyceraldehyde-3-phosphate dehydrogenase
+2034	DIAMOnD	EPAS1	ENSG00000116016	endothelial PAS domain protein 1
+7039	DIAMOnD	TGFA	ENSG00000163235	transforming growth factor alpha
+768	DIAMOnD	CA9	ENSG00000107159	carbonic anhydrase 9
+5228	DIAMOnD	PGF	ENSG00000119630	placental growth factor
+9306	DIAMOnD	SOCS6	ENSG00000170677	suppressor of cytokine signaling 6
+3099	DIAMOnD	HK2	ENSG00000159399	hexokinase 2
+7332	DIAMOnD	UBE2L3	ENSG00000185651	ubiquitin conjugating enzyme E2 L3
+2205	DIAMOnD	FCER1A	ENSG00000179639	Fc fragment of IgE receptor Ia
+5771	DIAMOnD	PTPN2	ENSG00000175354	protein tyrosine phosphatase, non-receptor type 2
+7297	DIAMOnD	TYK2	ENSG00000105397	tyrosine kinase 2
+122809	DIAMOnD	SOCS4	ENSG00000180008	suppressor of cytokine signaling 4
+3716	DIAMOnD	JAK1	ENSG00000162434	Janus kinase 1
+3880	DIAMOnD	KRT19	ENSG00000171345	keratin 19
+933	DIAMOnD	CD22	ENSG00000012124	CD22 molecule
+5452	DIAMOnD	POU2F2	ENSG00000028277	POU class 2 homeobox 2
+3687	DIAMOnD	ITGAX	ENSG00000140678	integrin subunit alpha X
+973	DIAMOnD	CD79A	ENSG00000105369	CD79a molecule
+1831	DIAMOnD	TSC22D3	ENSG00000157514	TSC22 domain family member 3
+7412	DIAMOnD	VCAM1	ENSG00000162692	vascular cell adhesion molecule 1
+4791	DIAMOnD	NFKB2	ENSG00000077150	nuclear factor kappa B subunit 2
+329	DIAMOnD	BIRC2	ENSG00000110330	baculoviral IAP repeat containing 2
+330	DIAMOnD	BIRC3	ENSG00000023445	baculoviral IAP repeat containing 3
+959	DIAMOnD	CD40LG	ENSG00000102245	CD40 ligand
+7051	DIAMOnD	TGM1	ENSG00000092295	transglutaminase 1
+4057	DIAMOnD	LTF	ENSG00000012223	lactotransferrin
+5284	DIAMOnD	PIGR	ENSG00000162896	polymeric immunoglobulin receptor
+5971	DIAMOnD	RELB	ENSG00000104856	RELB proto-oncogene, NF-kB subunit
+2623	DIAMOnD	GATA1	ENSG00000102145	GATA binding protein 1
+1053	DIAMOnD	CEBPE	ENSG00000092067	CCAAT enhancer binding protein epsilon
+4353	DIAMOnD	MPO	ENSG00000005381	myeloperoxidase
+5371	DIAMOnD	PML	ENSG00000140464	promyelocytic leukemia
+8900	DIAMOnD	CCNA1	ENSG00000133101	cyclin A1
+1056	DIAMOnD	CEL	ENSG00000170835	carboxyl ester lipase
+4261	DIAMOnD	CIITA	ENSG00000179583	class II major histocompatibility complex transactivator
+5209	DIAMOnD	PFKFB3	ENSG00000170525	6-phosphofructo-2-kinase/fructose-2,6-biphosphatase 3
+8795	DIAMOnD	TNFRSF10B	ENSG00000120889	TNF receptor superfamily member 10b
+2064	DIAMOnD	ERBB2	ENSG00000141736	erb-b2 receptor tyrosine kinase 2
+5730	DIAMOnD	PTGDS	ENSG00000107317	prostaglandin D2 synthase
+10648	DIAMOnD	SCGB1D1	ENSG00000168515	secretoglobin family 1D member 1
+567	DIAMOnD	B2M	ENSG00000166710	beta-2-microglobulin
+1736	DIAMOnD	DKC1	ENSG00000130826	dyskerin pseudouridine synthase 1
+3988	DIAMOnD	LIPA	ENSG00000107798	lipase A, lysosomal acid type
+6556	DIAMOnD	SLC11A1	ENSG00000018280	solute carrier family 11 member 1
+2805	DIAMOnD	GOT1	ENSG00000120053	glutamic-oxaloacetic transaminase 1
+1645	DIAMOnD	AKR1C1	ENSG00000187134	aldo-keto reductase family 1 member C1
+921	DIAMOnD	CD5	ENSG00000110448	CD5 molecule
+920	DIAMOnD	CD4	ENSG00000010610	CD4 molecule
+124872	DIAMOnD	B4GALNT2	ENSG00000167080	beta-1,4-N-acetyl-galactosaminyltransferase 2
+1509	DIAMOnD	CTSD	ENSG00000117984	cathepsin D
+2	DIAMOnD	A2M	ENSG00000175899	alpha-2-macroglobulin
+1655	DIAMOnD	DDX5	ENSG00000108654	DEAD-box helicase 5
+790	DIAMOnD	CAD	ENSG00000084774	carbamoyl-phosphate synthetase 2, aspartate transcarbamylase, and dihydroorotase
+3308	DIAMOnD	HSPA4	ENSG00000170606	heat shock protein family A (Hsp70) member 4
+5175	DIAMOnD	PECAM1	ENSG00000261371	platelet and endothelial cell adhesion molecule 1
+142	DIAMOnD	PARP1	ENSG00000143799	poly(ADP-ribose) polymerase 1
+5920	DIAMOnD	RARRES3	ENSG00000133321	retinoic acid receptor responder 3
+56729	DIAMOnD	RETN	ENSG00000104918	resistin
+6590	DIAMOnD	SLPI	ENSG00000124107	secretory leukocyte peptidase inhibitor
+4586	DIAMOnD	MUC5AC	ENSG00000215182	mucin 5AC, oligomeric mucus/gel-forming
+6609	DIAMOnD	SMPD1	ENSG00000166311	sphingomyelin phosphodiesterase 1
+3818	DIAMOnD	KLKB1	ENSG00000164344	kallikrein B1
+5079	DIAMOnD	PAX5	ENSG00000196092	paired box 5
+1551	DIAMOnD	CYP3A7	ENSG00000160870	cytochrome P450 family 3 subfamily A member 7
+1178	DIAMOnD	CLC	ENSG00000105205	Charcot-Leyden crystal galectin
+4332	DIAMOnD	MNDA	ENSG00000163563	myeloid cell nuclear differentiation antigen
+10148	DIAMOnD	EBI3	ENSG00000105246	Epstein-Barr virus induced 3
+54575	DIAMOnD	UGT1A10	ENSG00000242515	UDP glucuronosyltransferase family 1 member A10
+64321	DIAMOnD	SOX17	ENSG00000164736	SRY-box 17
+250	DIAMOnD	ALPP	ENSG00000163283	alkaline phosphatase, placental
+6707	DIAMOnD	SPRR3	ENSG00000163209	small proline rich protein 3
+9982	DIAMOnD	FGFBP1	ENSG00000137440	fibroblast growth factor binding protein 1
+3122	DIAMOnD	HLA-DRA	ENSG00000204287	major histocompatibility complex, class II, DR alpha
+695	DIAMOnD	BTK	ENSG00000010671	Bruton tyrosine kinase
+7352	DIAMOnD	UCP3	ENSG00000175564	uncoupling protein 3
+1048	DIAMOnD	CEACAM5	ENSG00000105388	carcinoembryonic antigen related cell adhesion molecule 5
+6617	DIAMOnD	SNAPC1	ENSG00000023608	small nuclear RNA activating complex polypeptide 1
+5211	DIAMOnD	PFKL	ENSG00000141959	phosphofructokinase, liver type
+2027	DIAMOnD	ENO3	ENSG00000108515	enolase 3
+9332	DIAMOnD	CD163	ENSG00000177575	CD163 molecule
+10501	DIAMOnD	SEMA6B	ENSG00000167680	semaphorin 6B
+4435	DIAMOnD	CITED1	ENSG00000125931	Cbp/p300 interacting transactivator with Glu/Asp rich carboxy-terminal domain 1
+26229	DIAMOnD	B3GAT3	ENSG00000149541	beta-1,3-glucuronyltransferase 3
+4311	DIAMOnD	MME	ENSG00000196549	membrane metalloendopeptidase
+3201	DIAMOnD	HOXA4	ENSG00000197576	homeobox A4
+3204	DIAMOnD	HOXA7	ENSG00000122592	homeobox A7
+1991	DIAMOnD	ELANE	ENSG00000197561	elastase, neutrophil expressed
+3291	DIAMOnD	HSD11B2	ENSG00000176387	hydroxysteroid 11-beta dehydrogenase 2
+5980	DIAMOnD	REV3L	ENSG00000009413	REV3 like, DNA directed polymerase zeta catalytic subunit
+9156	DIAMOnD	EXO1	ENSG00000174371	exonuclease 1
+351	DIAMOnD	APP	ENSG00000142192	amyloid beta precursor protein
+354	DIAMOnD	KLK3	ENSG00000142515	kallikrein related peptidase 3
+5111	DIAMOnD	PCNA	ENSG00000132646	proliferating cell nuclear antigen
+875	DIAMOnD	CBS	ENSG00000160200	cystathionine-beta-synthase
+5972	DIAMOnD	REN	ENSG00000143839	renin
+4282	DIAMOnD	MIF	ENSG00000240972	macrophage migration inhibitory factor
+2645	DIAMOnD	GCK	ENSG00000106633	glucokinase
+5933	DIAMOnD	RBL1	ENSG00000080839	RB transcriptional corepressor like 1
+1875	DIAMOnD	E2F5	ENSG00000133740	E2F transcription factor 5
+7043	DIAMOnD	TGFB3	ENSG00000119699	transforming growth factor beta 3
+4087	DIAMOnD	SMAD2	ENSG00000175387	SMAD family member 2
