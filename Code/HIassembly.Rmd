@@ -341,8 +341,6 @@ write.table(interactome,
             row.names = FALSE,
             col.names = TRUE)
 
-freya <- lapply(X = V(interactomeGraph)$name, FUN = function(i){mget(i, org.Hs.egGENENAME)})
-
 saveRDS(interactome, "Data/Individual/interactome_ready.rds")
 
 # Plot of proportion of interactions per source

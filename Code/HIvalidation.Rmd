@@ -661,14 +661,46 @@ As seen in the log-odds plot, the overall fit of the random geodesic distance to
 
 ```{r}
 interactomeGraph_fg <- fastgreedy.community(interactomeGraph)
-length(interactomeGraph_fg)
-sizes(interactomeGraph_fg)
-modularity(interactomeGraph_fg)
+length(interactomeGraph_fg) #63
+sizes(interactomeGraph_fg) #max = 1786
+modularity(interactomeGraph_fg) #0.64594
 interactomeGraph_fg_plot <- plot_dendrogram(interactomeGraph_fg)
 plot(interactomeGraph_fg, interactomeGraph)
 V(interactomeGraph)$fg <- membership(interactomeGraph_fg)
 createNetworkFromIgraph(interactomeGraph,"interactomeGraph_cytoscape")
 
+interactomeGraph_lo <- cluster_louvain(interactomeGraph)
+length(interactomeGraph_lo) #30
+sizes(interactomeGraph_lo) #max(1535)
+modularity(interactomeGraph_lo) #0.71413
+interactomeGraph_lo$degree <- (degree(interactomeGraph)[interactomeGraph_lo$names])
+# Assign node with highest degree as name for each cluster
+interactomeGraph_lo$cluster <- unname(ave(interactomeGraph_lo$degree, interactomeGraph_lo$membership, 
+                         FUN=function(x)names(x)[which.max(x)])
+)
+V(interactomeGraph)$name <- interactomeGraph_lo$cluster
+
+# Contract vertices
+E(interactomeGraph)$weight <- 1
+V(interactomeGraph)$weight <- 1
+interactomeGraph_contracted <- contract.vertices(interactomeGraph, interactomeGraph_lo$membership, 
+                          vertex.attr.comb = list(weight = "sum", name = function(x)x[1], "ignore"))
+interactomeGraph_contracted <- induced.subgraph(interactomeGraph_contracted, V(interactomeGraph_contracted)$weight > 20)
+
+V(interactomeGraph_contracted)$degree <- unname(degree(interactomeGraph_contracted))
+
+x <- plot.igraph(interactomeGraph_contracted, edge.arrow.size = 0.1, vertex.size = 0.5 * (V(interactomeGraph_contracted)$degree))
+
+
+interactomeGraph_lp <- cluster_label_prop(interactomeGraph)
+length(cluster_label_prop)
+sizes(cluster_label_prop)
+
+interactomeGraph_wt <- cluster_walktrap(interactomeGraph)
+length(interactomeGraph_wt) # 522
+sizes(interactomeGraph_wt)
+
+compare(interactomeGraph_wt, interactomeGraph_lo, "rand")
 ```
 
 
