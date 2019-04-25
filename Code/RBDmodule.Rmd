@@ -54,6 +54,7 @@ set.seed(0)
 ```{r}
 interactome_ready <- readRDS("~/Documents/Thesis/Bachelor_Thesis/Code/Data/Individual/interactome_ready.rds")
 interactomeGraph <- graph_from_data_frame(interactome_ready, directed = F)
+interactomeGraph <- simplify(interactomeGraph)
 
 RBDlist <- read_delim("Data/Individual/RBD_list.txt","\t", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE)
 RBDlist$X1 <- as.character(RBDlist$X1)
@@ -68,10 +69,34 @@ After gather the RBD seed nodes extracted from literature and public DBs, it is 
 ```{r message=FALSE, error=FALSE, warning=FALSE}
 # Extracting the interactions AMONG RBD nodes
 protoModule <- igraph::induced_subgraph(graph = interactomeGraph, vids = V(interactomeGraph)$name %in% RBDlist$X1, impl = "auto")
+#Simplifying
 protoModule <- simplify(protoModule)
-V(interactomeGraph)$protomodule_color <- ifelse(V(interactomeGraph)$name %in% RBDlist$X1, "blue", "gray")
+# Assigning the type of node
+V(interactomeGraph)$protomodule <- ifelse(V(interactomeGraph)$name %in% RBDlist$X1, "Seed", "Interactome")
+V(interactomeGraph)$color <- gsub("Seed","blue",V(interactomeGraph)$protomodule)
+V(interactomeGraph)$color <- gsub("Interactome","gray",V(interactomeGraph)$protomodule)
 
-plot(interactomeGraph, vertex.color = V(interactomeGraph)$protomodule_color, vertex.label = NA)
+rdp <- RedPort() 
+calld(rdp)
+interactomeGraph_ly <- layout_with_fr(interactomeGraph)
+
+addGraph( rdp, interactomeGraph, layout = interactomeGraph_ly )
+
+plot(interactomeGraph, layout = interactomeGraph_ly, vertex.color = V(interactomeGraph)$protomodule_color, vertex.label = NA)
+
+
+
+# Seed localisation in the HI
+interactomeGraphNet <- intergraph::asNetwork(interactomeGraph)
+interactomeGraphNet_ly <- gplot.layout.fruchtermanreingold(interactomeGraphNet)
+
+interactomeGraphNetPlot <- ggnet2(interactomeGraphNet,
+       mode = "fruchtermanreingold",
+       size = 1,
+       alpha = 0.5,
+       edge.alpha = 0.9,
+       edge.size = 0.1,
+       label = FALSE); interactomeGraphNetPlot
 
 # Converting from igraph to netork class, for visualisation with ggnet2
 protoModuleNet <- intergraph::asNetwork(protoModule)
@@ -94,13 +119,10 @@ Plottig the seed genes plus the interactions with their first neigbourhoods, in 
 
 ```{r message=FALSE, error=FALSE, warning=FALSE}
 # Extracting the neighbour of seed nodes
-neighverts <- unique(unlist(igraph::ego(graph = interactomeGraph, order = 1, nodes = RBDlist$X1)))
+neighverts <- unique(unlist(igraph::ego(graph = interactomeGraph, order = 1, nodes = V(interactomeGraph)$name %in% RBDlist$X1)))
 
 # Subsetting the interactome by seed nodes + neighbours
 neighvertsModule <- induced.subgraph(graph = interactomeGraph, vids = neighverts)
-
-# Getting the data frame to extract the "source" attribute
-#neighvertsModuleDF <- igraph::as_data_frame(neighvertsModule)
 
 # Setting the type of node to either seed or neighbour
 #neighvertsModuleDF$Type <- ifelse(neighvertsModuleDF$from %in% RBDlist | neighvertsModuleDF$to %in% RBDlist, "Seed", "Neighbour")
@@ -131,7 +153,7 @@ neighvertsModulePlot <- ggnet2(neighvertsModule,
        label.size = 3) +
   geom_point(aes(color = color), color = "white", alpha = 0.2, show.legend = FALSE) +
   geom_point(aes(color = color), alpha = 0.5) +
-  ggtitle("B")
+  ggtitle("B");neighvertsModulePlot
 
 # Optional to pass to node.color
 # ifelse(get.vertex.attribute(neighvertsModule, "vertex.names") %in% RBDlist, "#619CFF", "#00BA38")
