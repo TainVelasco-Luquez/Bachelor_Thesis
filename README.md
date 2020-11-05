@@ -1,8 +1,6 @@
 # On the REM sleep behavior disorder module: A network medicine approach
 Welcome! This repo is ment to ensure the reproducibility of my BSc thesis in the [GiBBS lab](http://www.genetica.unal.edu.co/gibbs/) at the Universidad Nacional de Colombia.
 
-**It is about to be submited for publication in an indexed journal. Available soon as a preprint in BioRxiv.**
-
 ## Author and Licence
 @TainVelasco-Luquez
 
